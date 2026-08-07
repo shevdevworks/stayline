@@ -1,0 +1,28 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    transform var(--duration-instant) ease;
+}
+
+.button:hover {
+  border-color: var(--border-strong);
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}

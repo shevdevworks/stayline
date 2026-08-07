@@ -1,0 +1,94 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.backLink {
+  align-self: flex-start;
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+}
+
+.backLink:hover {
+  color: var(--text-secondary);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 60rem) {
+  .layout {
+    grid-template-columns: 1fr 320px;
+    align-items: start;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.meta {
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.sidebar {
+  min-width: 0;
+}
+
+@media (min-width: 60rem) {
+  .sidebar {
+    position: sticky;
+    /* Header is sticky at top: 0 and always renders its 1px bottom border
+       (transparent until scrolled), so the panel must clear both to land
+       right under it with the same visual gap as before. */
+    top: calc(var(--header-height) + 1px + var(--space-6));
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tagList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+}
+
+.tagItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.tagItem::before {
+  content: '';
+  flex-shrink: 0;
+  width: var(--space-2);
+  height: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ruleItem {
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--border);
+  color: var(--text-secondary);
+}

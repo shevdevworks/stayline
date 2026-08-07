@@ -1,0 +1,11 @@
+.container {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .container {
+    padding: 0 var(--space-8);
+  }
+}

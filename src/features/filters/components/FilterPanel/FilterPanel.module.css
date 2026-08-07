@@ -1,0 +1,72 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.resetButton {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.resetButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  color: var(--text-secondary);
+}
+
+.retryButton {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.skeletonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletonRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.skeletonRow .skeletonBar {
+  flex: 1;
+}
+
+.skeletonBar {
+  height: var(--space-5);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonBarSm {
+  width: 35%;
+  height: var(--space-3);
+}
+
+.skeletonButton {
+  width: 40%;
+  align-self: flex-start;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
