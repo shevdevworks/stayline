@@ -1,4 +1,6 @@
-export const VENUE_TYPES = ['studio', 'coworking', 'meeting-room'] as const
+import type { DateRange } from '@/lib/date/types'
+
+export const VENUE_TYPES =['studio', 'coworking', 'meeting-room'] as const
 
 export type VenueType = (typeof VENUE_TYPES)[number]
 
@@ -75,4 +77,11 @@ export interface VenueDetail extends VenueCore {
   minDays: number
   maxDays: number
   address: string
+}
+
+// What fetchVenueBySlug returns: the static venue record plus its booked
+// ranges, resolved against today at request time — kept off VenueDetail
+// itself since data/venues.ts stores fixed records, not dated availability.
+export interface VenueWithAvailability extends VenueDetail {
+  bookedRanges: DateRange[]
 }

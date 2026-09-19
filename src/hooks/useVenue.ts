@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchVenueBySlug, isAbortError, NotFoundError } from '@/api'
-import type { VenueDetail } from '@/types'
+import type { VenueWithAvailability } from '@/types'
 
 export type UseVenueResult =
   | { status: 'loading'; refetch: () => void }
-  | { status: 'success'; data: VenueDetail; refetch: () => void }
+  | { status: 'success'; data: VenueWithAvailability; refetch: () => void }
   | { status: 'not-found'; refetch: () => void }
   | { status: 'error'; error: Error; refetch: () => void }
 
 type VenueSnapshot =
-  | { slug: string; key: string; error: null; data: VenueDetail }
-  | { slug: string; key: string; error: Error; data: VenueDetail | null }
+  | { slug: string; key: string; error: null; data: VenueWithAvailability }
+  | { slug: string; key: string; error: Error; data: VenueWithAvailability | null }
 
 export function useVenue(slug: string): UseVenueResult {
   const [snapshot, setSnapshot] = useState<VenueSnapshot | null>(null)

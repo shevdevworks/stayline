@@ -6,6 +6,7 @@ import { bookingErrorText } from '@/features/booking/errorText'
 import type { BookingSetFieldPayload } from '@/features/booking/formState'
 import type { BookingDraft, BookingValidationConstraints } from '@/features/booking/types'
 import type { BookingFieldErrors } from '@/features/booking/validation'
+import { isDateInRanges } from '@/lib/date/isoDate'
 import { BookingFieldError } from './BookingFieldError'
 import styles from './BookingPage.module.css'
 
@@ -60,6 +61,7 @@ export function BookingStepDates({
         minDate={constraints.today}
         minDays={constraints.minDays}
         maxDays={constraints.maxDays}
+        isDateDisabled={(iso) => isDateInRanges(iso, constraints.bookedRanges)}
         describedBy={dateErrorText ? datesErrorId : undefined}
         invalid={dateInvalid}
       />

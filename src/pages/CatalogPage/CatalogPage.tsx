@@ -1,4 +1,3 @@
-import { Container } from '@/components/Container/Container'
 import { EmptyState } from '@/components/EmptyState/EmptyState'
 import { Select } from '@/components/ui/Select/Select'
 import { VenueCard } from '@/components/VenueCard/VenueCard'
@@ -56,7 +55,7 @@ export function CatalogPage() {
   const { facets, status: facetsStatus, refetch: refetchFacets } = useFilterFacets()
 
   return (
-    <Container>
+    <>
       <div className={styles.header}>
         <h1>Find your space</h1>
         <p className={styles.subtitle}>Studios, coworking desks and meeting rooms, ready to book.</p>
@@ -129,13 +128,21 @@ export function CatalogPage() {
             />
           )}
 
-          {status === 'empty' && (
-            <EmptyState
-              icon={<SearchOffIcon />}
-              title="No venues found"
-              description="There are no venues to show right now."
-            />
-          )}
+          {status === 'empty' &&
+            (activeCount > 0 ? (
+              <EmptyState
+                icon={<SearchOffIcon />}
+                title="No venues match your filters"
+                description="Try removing some filters or reset them all."
+                action={{ label: 'Reset filters', onClick: resetFilters }}
+              />
+            ) : (
+              <EmptyState
+                icon={<SearchOffIcon />}
+                title="No venues found"
+                description="There are no venues to show right now."
+              />
+            ))}
 
           {status === 'success' && (
             <div className={styles.grid}>
@@ -146,6 +153,6 @@ export function CatalogPage() {
           )}
         </div>
       </div>
-    </Container>
+    </>
   )
 }

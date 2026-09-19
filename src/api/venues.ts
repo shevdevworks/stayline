@@ -1,7 +1,9 @@
+import { getBookedRanges } from '@/data/bookedRanges'
 import { findVenueBySlug, venues } from '@/data/venues'
 import type { SortKey, VenueFilters } from '@/features/filters/types'
+import { todayIso } from '@/lib/date/isoDate'
 import { AMENITY_IDS } from '@/types'
-import type { FilterFacets, VenueDetail, VenueSummary } from '@/types'
+import type { FilterFacets, VenueDetail, VenueSummary, VenueWithAvailability } from '@/types'
 import { NotFoundError } from './errors'
 import { simulateNetwork } from './delay'
 
@@ -73,7 +75,7 @@ export async function fetchVenues(filters: VenueFilters, signal?: AbortSignal): 
   return sortVenues(filtered, filters.sort).map(toSummary)
 }
 
-export async function fetchVenueBySlug(slug: string, signal?: AbortSignal): Promise<VenueDetail> {
+export async function fetchVenueBySlug(slug: string, signal?: AbortSignal): Promise<VenueWithAvailability> {
   await simulateNetwork(signal)
 
   const venue = findVenueBySlug(slug)
@@ -81,5 +83,5 @@ export async function fetchVenueBySlug(slug: string, signal?: AbortSignal): Prom
     throw new NotFoundError(`Venue with slug "${slug}" not found`)
   }
 
-  return venue
+  return { ...venue, bookedRanges: getBookedRanges(slug, todayIso()) }
 }

@@ -40,6 +40,8 @@ function checkOutText(code: CheckOutErrorCode, constraints: BookingConstraints):
       return 'Check-out date cannot be in the past.'
     case 'before-check-in':
       return 'Check-out date must be after check-in.'
+    case 'unavailable':
+      return 'Some of these dates are already booked. Choose different dates.'
     case 'too-short':
       return `Stay must be at least ${daysLabel(constraints.minDays)}.`
     case 'too-long':

@@ -1,13 +1,16 @@
-import { useEffect, useRef } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { VenueLoadError } from '@/components/VenueLoadError/VenueLoadError'
 import { VenueNotFound } from '@/components/VenueNotFound/VenueNotFound'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useVenue } from '@/hooks/useVenue'
 import { AMENITY_LABELS, VENUE_TYPE_LABELS } from '@/types'
 import { Gallery } from './Gallery'
+import { MobileBookBar } from './MobileBookBar'
 import { PricePanel } from './PricePanel'
 import { VenuePageSkeleton } from './VenuePageSkeleton'
 import styles from './VenuePage.module.css'
+
+const BOOKING_PANEL_ID = 'booking-panel'
 
 export function VenuePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -16,20 +19,7 @@ export function VenuePage() {
 
   const backTo = (location.state as { from?: string } | null)?.from ?? '/'
 
-  const originalTitleRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    originalTitleRef.current = document.title
-    return () => {
-      if (originalTitleRef.current !== null) document.title = originalTitleRef.current
-    }
-  }, [])
-
-  const venueName = venue.status === 'success' ? venue.data.name : null
-
-  useEffect(() => {
-    if (venueName !== null) document.title = venueName
-  }, [venueName])
+  useDocumentTitle(venue.status === 'success' ? venue.data.name : null)
 
   if (venue.status === 'loading') {
     return <VenuePageSkeleton />
@@ -89,10 +79,12 @@ export function VenuePage() {
           </section>
         </div>
 
-        <aside className={styles.sidebar}>
+        <aside id={BOOKING_PANEL_ID} className={styles.sidebar} tabIndex={-1} aria-label="Booking">
           <PricePanel venue={data} />
         </aside>
       </div>
+
+      <MobileBookBar pricePerDay={data.pricePerDay} targetId={BOOKING_PANEL_ID} />
     </div>
   )
 }

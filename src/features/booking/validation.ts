@@ -1,4 +1,4 @@
-import { checkRangeLength, isChronological, isIsoDate, isPastDate } from '@/lib/date/isoDate'
+import { checkRangeLength, isChronological, isIsoDate, isPastDate, overlapsAnyRange } from '@/lib/date/isoDate'
 import type { IsoDate } from '@/lib/date/types'
 import { isValidGuestsCount, parseGuestsCount } from './guests'
 import { BOOKING_STEP_FIELDS, BOOKING_STEP_ORDER } from './types'
@@ -10,6 +10,7 @@ export type CheckOutErrorCode =
   | 'invalid-format'
   | 'in-past'
   | 'before-check-in'
+  | 'unavailable'
   | 'too-short'
   | 'too-long'
 export type GuestsErrorCode = 'required' | 'invalid'
@@ -77,6 +78,9 @@ function parseCheckOut(
   if (checkIn === null) return { ok: true, value: trimmed }
 
   if (!isChronological(checkIn, trimmed)) return { ok: false, error: 'before-check-in' }
+  if (overlapsAnyRange({ start: checkIn, end: trimmed }, constraints.bookedRanges)) {
+    return { ok: false, error: 'unavailable' }
+  }
 
   const rangeCheck = checkRangeLength(checkIn, trimmed, constraints)
   if (rangeCheck !== 'valid') return { ok: false, error: rangeCheck }

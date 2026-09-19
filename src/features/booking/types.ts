@@ -1,4 +1,4 @@
-import type { IsoDate } from '@/lib/date/types'
+import type { DateRange, IsoDate } from '@/lib/date/types'
 
 export interface BookingParams {
   checkIn: IsoDate | null
@@ -10,6 +10,7 @@ export interface BookingConstraints {
   minDays: number
   maxDays: number
   capacity: number
+  bookedRanges: readonly DateRange[]
 }
 
 // Raw form input: every field is an optional string, including dates and

@@ -1,4 +1,4 @@
-import { checkRangeLength, isChronological, isIsoDate, isPastDate } from '@/lib/date/isoDate'
+import { checkRangeLength, isChronological, isIsoDate, isPastDate, overlapsAnyRange } from '@/lib/date/isoDate'
 import type { IsoDate } from '@/lib/date/types'
 import { isValidGuestsCount, parseGuestsCount } from './guests'
 import type { BookingConstraints, BookingParams } from './types'
@@ -16,6 +16,7 @@ function parseCandidateDate(raw: string | null, today: IsoDate): IsoDate | null 
 // later parse would reject.
 function isValidDateRange(checkIn: IsoDate, checkOut: IsoDate, constraints: BookingConstraints): boolean {
   if (!isChronological(checkIn, checkOut)) return false
+  if (overlapsAnyRange({ start: checkIn, end: checkOut }, constraints.bookedRanges)) return false
   return checkRangeLength(checkIn, checkOut, constraints) === 'valid'
 }
 

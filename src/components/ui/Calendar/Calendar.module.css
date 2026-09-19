@@ -127,8 +127,11 @@
   outline-offset: -4px;
 }
 
+/* Secondary color alone sits too close to primary on small screens to tell
+   unavailable days apart at a glance — fade them further. */
 .day[aria-disabled='true'] {
   color: var(--text-secondary);
+  opacity: 0.45;
   cursor: default;
 }
 

@@ -25,9 +25,11 @@ export function BookingSuccess({ confirmation, venue, headingRef }: BookingSucce
 
   return (
     <div className={styles.step}>
-      <h2 ref={headingRef} tabIndex={-1} className={styles.stepHeading}>
+      {/* h1, not h2: this view replaces the whole form, venue-name h1
+          included, so it is the page's only top-level heading. */}
+      <h1 ref={headingRef} tabIndex={-1} className={styles.stepHeading}>
         Booking confirmed
-      </h2>
+      </h1>
       <p>A confirmation has been sent to {request.email}.</p>
 
       <dl className={styles.summary}>

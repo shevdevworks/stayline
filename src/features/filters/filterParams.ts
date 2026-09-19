@@ -39,6 +39,14 @@ function parseNonNegativeNumber(raw: string | null): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null
 }
 
+// An inverted range (min above max) would silently match nothing — read it
+// as the range the person evidently meant instead. Applied on both parse
+// and serialize so the fields, the URL and the results always agree.
+function normalizePriceRange(min: number | null, max: number | null): [number | null, number | null] {
+  if (min !== null && max !== null && min > max) return [max, min]
+  return [min, max]
+}
+
 export function parseFilters(params: URLSearchParams): VenueFilters {
   const query = (params.get('q') ?? '').trim().slice(0, MAX_QUERY_LENGTH)
 
@@ -48,10 +56,15 @@ export function parseFilters(params: URLSearchParams): VenueFilters {
   const types = parseListParam(params.get('type'), VENUE_TYPES)
   const amenities = parseListParam(params.get('amenity'), AMENITY_IDS)
 
-  const priceMin = parseNonNegativeNumber(params.get('priceMin'))
-  const priceMax = parseNonNegativeNumber(params.get('priceMax'))
+  const [priceMin, priceMax] = normalizePriceRange(
+    parseNonNegativeNumber(params.get('priceMin')),
+    parseNonNegativeNumber(params.get('priceMax')),
+  )
 
-  const capacity = parseNonNegativeNumber(params.get('capacity'))
+  // Guests are whole people — the Capacity field only accepts digits, so a
+  // fractional value can only come from a hand-edited URL.
+  const capacityRaw = parseNonNegativeNumber(params.get('capacity'))
+  const capacity = capacityRaw !== null && Number.isInteger(capacityRaw) ? capacityRaw : null
 
   const sortRaw = params.get('sort')
   const sort = sortRaw !== null && isSortKey(sortRaw) ? sortRaw : DEFAULT_FILTERS.sort
@@ -67,8 +80,9 @@ export function toSearchParams(filters: VenueFilters): URLSearchParams {
   if (filters.city !== null) params.set('city', filters.city)
   if (filters.types.length > 0) params.set('type', filters.types.join(','))
   if (filters.amenities.length > 0) params.set('amenity', filters.amenities.join(','))
-  if (filters.priceMin !== null) params.set('priceMin', String(filters.priceMin))
-  if (filters.priceMax !== null) params.set('priceMax', String(filters.priceMax))
+  const [priceMin, priceMax] = normalizePriceRange(filters.priceMin, filters.priceMax)
+  if (priceMin !== null) params.set('priceMin', String(priceMin))
+  if (priceMax !== null) params.set('priceMax', String(priceMax))
   if (filters.capacity !== null) params.set('capacity', String(filters.capacity))
   if (filters.sort !== 'recommended') params.set('sort', filters.sort)
 

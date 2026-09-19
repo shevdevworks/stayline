@@ -79,9 +79,10 @@ export function useBookingForm(constraints: BookingConstraints): UseBookingFormR
       minDays: constraints.minDays,
       maxDays: constraints.maxDays,
       capacity: constraints.capacity,
+      bookedRanges: constraints.bookedRanges,
       today,
     }),
-    [constraints.minDays, constraints.maxDays, constraints.capacity, today],
+    [constraints.minDays, constraints.maxDays, constraints.capacity, constraints.bookedRanges, today],
   )
 
   // The initializer runs exactly once on mount regardless of later

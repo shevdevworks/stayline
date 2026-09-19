@@ -1,6 +1,6 @@
 import { findVenueBySlug } from '@/data/venues'
 import { getBookedRanges } from '@/data/bookedRanges'
-import { rangeLengthDays, rangesOverlap, todayIso } from '@/lib/date/isoDate'
+import { overlapsAnyRange, rangeLengthDays, todayIso } from '@/lib/date/isoDate'
 import type { BookingConfirmation, BookingRequest } from '@/features/booking/types'
 import { BookingUnavailableError, NotFoundError } from './errors'
 import { simulateNetwork } from './delay'
@@ -18,8 +18,7 @@ export async function submitBooking(
   }
 
   const requestedRange = { start: request.checkIn, end: request.checkOut }
-  const bookedRanges = getBookedRanges(slug, todayIso())
-  if (bookedRanges.some((range) => rangesOverlap(range, requestedRange))) {
+  if (overlapsAnyRange(requestedRange, getBookedRanges(slug, todayIso()))) {
     throw new BookingUnavailableError(`Venue "${slug}" is not available for the selected dates`)
   }
 

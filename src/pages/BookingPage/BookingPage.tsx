@@ -7,8 +7,9 @@ import { BOOKING_STEP_ORDER } from '@/features/booking/types'
 import type { BookingFieldName } from '@/features/booking/types'
 import { useBookingForm } from '@/features/booking/useBookingForm'
 import { useAnnouncedMessage } from '@/hooks/useAnnouncedMessage'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useVenue } from '@/hooks/useVenue'
-import type { VenueDetail } from '@/types'
+import type { VenueWithAvailability } from '@/types'
 import { BookingFieldError } from './BookingFieldError'
 import { BookingPageSkeleton } from './BookingPageSkeleton'
 import { BookingStepContacts } from './BookingStepContacts'
@@ -27,7 +28,7 @@ import styles from './BookingPage.module.css'
 type FocusIntent = { type: 'heading' } | { type: 'field'; field: BookingFieldName }
 
 interface BookingFormProps {
-  venue: VenueDetail
+  venue: VenueWithAvailability
   slug: string
 }
 
@@ -48,6 +49,7 @@ function BookingForm({ venue, slug }: BookingFormProps) {
     minDays: venue.minDays,
     maxDays: venue.maxDays,
     capacity: venue.capacity,
+    bookedRanges: venue.bookedRanges,
   })
 
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -95,10 +97,14 @@ function BookingForm({ venue, slug }: BookingFormProps) {
   // itself is enough to fire exactly once per transition. Success is a
   // terminal state (isBlocked freezes everything after it), so this can't
   // re-fire once entered. Error needs no handling here — see the comment by
-  // the submissionError block below for why.
+  // the submissionError block below for why. Focuses directly instead of
+  // recording a FocusIntent: the intent-consuming effect above runs before
+  // this one in the same commit, and the success render is the last one, so
+  // an intent set here would never be picked up. The success heading is
+  // already in the DOM by the time this runs.
   useEffect(() => {
     if (submission.type === 'success') {
-      focusIntentRef.current = { type: 'heading' }
+      headingRef.current?.focus()
     }
   }, [submission])
 
@@ -252,6 +258,8 @@ function BookingForm({ venue, slug }: BookingFormProps) {
 export function BookingPage() {
   const { slug } = useParams<{ slug: string }>()
   const venue = useVenue(slug ?? '')
+
+  useDocumentTitle(venue.status === 'success' ? `Book ${venue.data.name}` : null)
 
   if (venue.status === 'loading') {
     return <BookingPageSkeleton />

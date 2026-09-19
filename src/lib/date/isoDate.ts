@@ -115,6 +115,14 @@ export function rangesOverlap(a: DateRange, b: DateRange): boolean {
   return compareIso(a.start, b.end) <= 0 && compareIso(b.start, a.end) <= 0
 }
 
+export function overlapsAnyRange(range: DateRange, ranges: readonly DateRange[]): boolean {
+  return ranges.some((other) => rangesOverlap(other, range))
+}
+
+export function isDateInRanges(date: IsoDate, ranges: readonly DateRange[]): boolean {
+  return overlapsAnyRange({ start: date, end: date }, ranges)
+}
+
 // Precondition: start <= end — order and "in the past" are the caller's
 // responsibility, this only checks the inclusive day count against the given
 // bounds. The one place this comparison should happen — anywhere deciding

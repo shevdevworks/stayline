@@ -10,14 +10,14 @@ import { useBookingParams } from '@/features/booking/useBookingParams'
 import { useAnnouncedMessage } from '@/hooks/useAnnouncedMessage'
 import type { DateRangeRejectionReason } from '@/hooks/useDateRangePicker'
 import { useDebouncedInput } from '@/hooks/useDebouncedInput'
-import { rangeLengthDays, todayIso } from '@/lib/date/isoDate'
+import { isDateInRanges, rangeLengthDays, todayIso } from '@/lib/date/isoDate'
 import { daysLabel } from '@/lib/daysLabel'
 import { formatPrice } from '@/lib/price'
-import type { VenueDetail } from '@/types'
+import type { VenueDetail, VenueWithAvailability } from '@/types'
 import styles from './PricePanel.module.css'
 
 export interface PricePanelProps {
-  venue: VenueDetail
+  venue: VenueWithAvailability
 }
 
 function stayHint(minDays: number, maxDays: number): string {
@@ -40,11 +40,13 @@ function guestsErrorMessage(value: number, capacity: number): string {
 }
 
 export function PricePanel({ venue }: PricePanelProps) {
-  const { checkIn, checkOut, guests, setDates, setGuests } = useBookingParams({
+  const constraints = {
     minDays: venue.minDays,
     maxDays: venue.maxDays,
     capacity: venue.capacity,
-  })
+    bookedRanges: venue.bookedRanges,
+  }
+  const { checkIn, checkOut, guests, setDates, setGuests } = useBookingParams(constraints)
 
   const uid = useId()
   const datesId = `${uid}-dates`
@@ -77,6 +79,20 @@ export function PricePanel({ venue }: PricePanelProps) {
   const days = checkIn !== null && checkOut !== null ? rangeLengthDays(checkIn, checkOut) : null
   const showPendingCheckoutHint = !isFieldOpen && hasPendingCheckIn && days === null
 
+  // Read from what's typed, not from the URL: an out-of-range count never
+  // reaches the URL (toSearchParams drops it), so the link would otherwise
+  // go through with the guests silently missing.
+  const typedGuests = toNumberOrNull(debouncedGuests.value)
+  const guestsInvalid = typedGuests !== null && !isValidGuestsCount(typedGuests, venue.capacity)
+  const canBook = days !== null && !guestsInvalid
+
+  let bookNote: string | null = null
+  if (days === null) {
+    if (!showPendingCheckoutHint) bookNote = 'Select valid check-in and check-out dates to book.'
+  } else if (guestsInvalid) {
+    bookNote = 'Enter a valid number of guests to book.'
+  }
+
   return (
     <div className={styles.panel}>
       {days !== null ? (
@@ -106,6 +122,7 @@ export function PricePanel({ venue }: PricePanelProps) {
         minDate={todayIso()}
         minDays={venue.minDays}
         maxDays={venue.maxDays}
+        isDateDisabled={(iso) => isDateInRanges(iso, venue.bookedRanges)}
         describedBy={datesHintId}
         onRejectedSelection={(reason) => announceRejection(rejectionMessage(reason, venue))}
         onSelectionStart={() => {
@@ -160,14 +177,11 @@ export function PricePanel({ venue }: PricePanelProps) {
         )}
       </p>
 
-      {days !== null ? (
+      {canBook ? (
         <Link
           to={{
             pathname: `/venue/${venue.slug}/book`,
-            search: toSearchParams(
-              { checkIn, checkOut, guests },
-              { minDays: venue.minDays, maxDays: venue.maxDays, capacity: venue.capacity },
-            ).toString(),
+            search: toSearchParams({ checkIn, checkOut, guests }, constraints).toString(),
           }}
           className={styles.bookButton}
         >
@@ -178,9 +192,7 @@ export function PricePanel({ venue }: PricePanelProps) {
           <button type="button" className={styles.bookButton} disabled>
             Book
           </button>
-          {!showPendingCheckoutHint && (
-            <p className={styles.bookNote}>Select valid check-in and check-out dates to book.</p>
-          )}
+          {bookNote !== null && <p className={styles.bookNote}>{bookNote}</p>}
         </>
       )}
     </div>

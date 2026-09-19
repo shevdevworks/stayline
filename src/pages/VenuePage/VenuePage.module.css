@@ -41,6 +41,21 @@
 
 .sidebar {
   min-width: 0;
+  /* Clears the sticky header when MobileBookBar scrolls this into view. */
+  scroll-margin-top: calc(var(--header-height) + var(--space-4));
+}
+
+/* Focused programmatically by MobileBookBar only to move reading position —
+   not an interactive control, so no focus ring. */
+.sidebar:focus {
+  outline: none;
+}
+
+/* Keeps the fixed MobileBookBar from covering the end of the page. */
+@media (max-width: 59.99rem) {
+  .page {
+    padding-bottom: var(--space-20);
+  }
 }
 
 @media (min-width: 60rem) {

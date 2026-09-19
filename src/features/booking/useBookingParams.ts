@@ -10,7 +10,12 @@ export interface UseBookingParamsResult extends BookingParams {
   setGuests: (guests: number | null) => void
 }
 
-export function useBookingParams({ minDays, maxDays, capacity }: BookingConstraints): UseBookingParamsResult {
+export function useBookingParams({
+  minDays,
+  maxDays,
+  capacity,
+  bookedRanges,
+}: BookingConstraints): UseBookingParamsResult {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Same idiom as useBookingForm: computed once via an empty-deps useMemo,
@@ -22,30 +27,30 @@ export function useBookingParams({ minDays, maxDays, capacity }: BookingConstrai
   // its identity to keep `booking` referentially stable across renders.
   const paramsKey = searchParams.toString()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const booking = useMemo(() => parseBookingParams(searchParams, { minDays, maxDays, capacity }, today), [paramsKey, minDays, maxDays, capacity, today])
+  const booking = useMemo(() => parseBookingParams(searchParams, { minDays, maxDays, capacity, bookedRanges }, today), [paramsKey, minDays, maxDays, capacity, bookedRanges, today])
 
   const setDates = useCallback(
     (dates: { checkIn: IsoDate | null; checkOut: IsoDate | null }) =>
       setSearchParams(
         (prev) => {
-          const constraints: BookingConstraints = { minDays, maxDays, capacity }
+          const constraints: BookingConstraints = { minDays, maxDays, capacity, bookedRanges }
           return toSearchParams({ ...parseBookingParams(prev, constraints, today), ...dates }, constraints)
         },
         { replace: true },
       ),
-    [setSearchParams, minDays, maxDays, capacity, today],
+    [setSearchParams, minDays, maxDays, capacity, bookedRanges, today],
   )
 
   const setGuests = useCallback(
     (guests: number | null) =>
       setSearchParams(
         (prev) => {
-          const constraints: BookingConstraints = { minDays, maxDays, capacity }
+          const constraints: BookingConstraints = { minDays, maxDays, capacity, bookedRanges }
           return toSearchParams({ ...parseBookingParams(prev, constraints, today), guests }, constraints)
         },
         { replace: true },
       ),
-    [setSearchParams, minDays, maxDays, capacity, today],
+    [setSearchParams, minDays, maxDays, capacity, bookedRanges, today],
   )
 
   return { ...booking, setDates, setGuests }
