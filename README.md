@@ -108,4 +108,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ---
 
-Built by [Ivan Shevchenko](https://github.com/shevdevworks) — [shevdevworks.github.io/portfolio](https://shevdevworks.github.io/portfolio)
+Built by [Ivan Shevchenko](https://github.com/shevdevworks) — [shevdevworks.com](https://shevdevworks.com/)
