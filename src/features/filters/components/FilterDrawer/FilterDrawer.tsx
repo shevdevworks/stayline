@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { CloseIcon, SlidersIcon } from '@/components/icons/Icons'
+import { buttonClass } from '@/components/ui/Button/buttonClass'
 import type { VenueFilters } from '@/features/filters/types'
 import type { FilterFacetsStatus } from '@/features/filters/useFilterFacets'
 import { getFocusableElements } from '@/lib/dom/focusable'
@@ -7,27 +9,7 @@ import type { FilterFacets } from '@/types'
 import { FilterPanel } from '../FilterPanel/FilterPanel'
 import styles from './FilterDrawer.module.css'
 
-const DESKTOP_QUERY = '(min-width: 60rem)'
-
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.closeIcon}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        d="M6 6l12 12M18 6L6 18"
-      />
-    </svg>
-  )
-}
+const DESKTOP_QUERY = '(min-width: 64rem)'
 
 export interface FilterDrawerProps {
   filters: VenueFilters
@@ -37,6 +19,8 @@ export interface FilterDrawerProps {
   onPatch: (patch: Partial<VenueFilters>) => void
   onReset: () => void
   activeCount: number
+  // null while the result count is still loading.
+  resultCount: number | null
 }
 
 export function FilterDrawer({
@@ -47,6 +31,7 @@ export function FilterDrawer({
   onPatch,
   onReset,
   activeCount,
+  resultCount,
 }: FilterDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const uid = useId()
@@ -73,8 +58,7 @@ export function FilterDrawer({
   // Crossing into the desktop layout hides the trigger via CSS but React
   // state doesn't know that — without this, the dialog would keep rendering
   // on top of the now-visible sidebar. Closing here skips the focus restore
-  // deliberately: the trigger is display:none at this width, so focusing it
-  // is a no-op and would just drop focus to <body>.
+  // deliberately: the trigger is display:none at this width.
   useEffect(() => {
     const mediaQuery = window.matchMedia(DESKTOP_QUERY)
 
@@ -105,6 +89,7 @@ export function FilterDrawer({
     }
   }, [isOpen])
 
+  // Modal focus trap: Tab and Shift+Tab wrap inside the dialog.
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -140,11 +125,26 @@ export function FilterDrawer({
     close()
   }
 
+  const showLabel =
+    resultCount === null ? 'Show spaces' : `Show ${resultCount} ${resultCount === 1 ? 'space' : 'spaces'}`
+
   return (
     <>
-      <button ref={triggerRef} type="button" className={styles.trigger} onClick={open}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={buttonClass({ variant: 'secondary', className: styles.trigger })}
+        aria-haspopup="dialog"
+        onClick={open}
+      >
+        <SlidersIcon />
         Filters
-        {activeCount > 0 && <span className={styles.badge}>{activeCount}</span>}
+        {activeCount > 0 && (
+          <span className={styles.badge}>
+            {activeCount}
+            <span className="sr-only"> active</span>
+          </span>
+        )}
       </button>
 
       {isOpen &&
@@ -182,6 +182,11 @@ export function FilterDrawer({
                   onReset={onReset}
                   activeCount={activeCount}
                 />
+              </div>
+              <div className={styles.dialogFooter}>
+                <button type="button" className={buttonClass({ block: true, size: 'large' })} onClick={close}>
+                  {showLabel}
+                </button>
               </div>
             </div>
           </div>,

@@ -1,6 +1,6 @@
 import type { DateRange } from '@/lib/date/types'
 
-export const VENUE_TYPES =['studio', 'coworking', 'meeting-room'] as const
+export const VENUE_TYPES = ['studio', 'coworking', 'meeting-room'] as const
 
 export type VenueType = (typeof VENUE_TYPES)[number]
 
@@ -61,10 +61,15 @@ interface VenueCore {
   rating: number
 }
 
+// Illustrative stock photography (see PHOTO-CREDITS.md), always 3:2.
 export interface VenueImage {
-  src: string
+  src: string // 1200×800
+  srcSmall: string // 600×400
   alt: string
 }
+
+export const VENUE_IMAGE_WIDTH = 1200
+export const VENUE_IMAGE_HEIGHT = 800
 
 export interface VenueSummary extends VenueCore {
   coverImage: VenueImage

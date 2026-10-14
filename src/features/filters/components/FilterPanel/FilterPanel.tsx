@@ -1,8 +1,10 @@
 import { useId } from 'react'
+import { ResetIcon } from '@/components/icons/Icons'
+import { buttonClass } from '@/components/ui/Button/buttonClass'
 import { CheckboxGroup } from '@/components/ui/CheckboxGroup/CheckboxGroup'
 import { toDigits, toNumberOrNull } from '@/components/ui/NumberRangeField/digits'
 import { NumberRangeField } from '@/components/ui/NumberRangeField/NumberRangeField'
-import { Select } from '@/components/ui/Select/Select'
+import { RadioGroup } from '@/components/ui/RadioGroup/RadioGroup'
 import { TextField } from '@/components/ui/TextField/TextField'
 import { isOneOf } from '@/features/filters/filterParams'
 import type { FilterFacetsStatus } from '@/features/filters/useFilterFacets'
@@ -22,6 +24,8 @@ export interface FilterPanelProps {
   activeCount: number
 }
 
+const ALL_CITIES = ''
+
 function toVenueTypes(values: string[]): VenueType[] {
   return values.filter((value): value is VenueType => isOneOf(value, VENUE_TYPES))
 }
@@ -33,37 +37,14 @@ function toAmenityIds(values: string[]): AmenityId[] {
 function FilterPanelSkeleton() {
   return (
     <div className={styles.panel} aria-hidden="true">
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonBar} />
-      </div>
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonBar} />
-      </div>
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonBar} />
-        <div className={styles.skeletonBar} />
-        <div className={styles.skeletonBar} />
-      </div>
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonBar} />
-        <div className={styles.skeletonBar} />
-      </div>
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonRow}>
-          <div className={styles.skeletonBar} />
-          <div className={styles.skeletonBar} />
+      {[4, 3, 2, 1].map((rows, group) => (
+        <div key={group} className={styles.skeletonGroup}>
+          <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
+          {Array.from({ length: rows }, (_, row) => (
+            <div key={row} className={styles.skeletonBar} />
+          ))}
         </div>
-      </div>
-      <div className={styles.skeletonGroup}>
-        <div className={`${styles.skeletonBar} ${styles.skeletonBarSm}`} />
-        <div className={styles.skeletonBar} />
-      </div>
-      <div className={`${styles.skeletonBar} ${styles.skeletonButton}`} />
+      ))}
     </div>
   )
 }
@@ -78,11 +59,7 @@ export function FilterPanel({
   activeCount,
 }: FilterPanelProps) {
   const uid = useId()
-  const queryId = `${uid}-query`
-  const cityId = `${uid}-city`
   const capacityId = `${uid}-capacity`
-
-  const debouncedQuery = useDebouncedInput(filters.query, (value) => onPatch({ query: value }), 350)
 
   const debouncedCapacity = useDebouncedInput(
     filters.capacity === null ? '' : String(filters.capacity),
@@ -93,9 +70,9 @@ export function FilterPanel({
   if (facetsStatus === 'error') {
     return (
       <div className={styles.panel}>
-        <p className={styles.errorMessage}>Couldn&apos;t load filters.</p>
-        <button type="button" className={styles.retryButton} onClick={onFacetsRetry}>
-          Retry
+        <p className={styles.errorMessage}>Filters couldn&apos;t be loaded.</p>
+        <button type="button" className={buttonClass({ variant: 'secondary', size: 'small' })} onClick={onFacetsRetry}>
+          Try again
         </button>
       </div>
     )
@@ -107,69 +84,73 @@ export function FilterPanel({
 
   return (
     <div className={styles.panel}>
-      <TextField
-        id={queryId}
-        label="Search"
-        value={debouncedQuery.value}
-        onChange={debouncedQuery.setValue}
-        onBlur={debouncedQuery.flush}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') debouncedQuery.flush()
-        }}
-        placeholder="Search by name or city"
-        clearable
-      />
+      <div className={styles.group}>
+        <RadioGroup
+          legend="City"
+          name="city"
+          value={filters.city ?? ALL_CITIES}
+          options={[
+            { value: ALL_CITIES, label: 'All cities' },
+            ...facets.cities.map((city) => ({ value: city, label: city })),
+          ]}
+          onChange={(value) => onPatch({ city: value === ALL_CITIES ? null : value })}
+        />
+      </div>
 
-      <Select
-        id={cityId}
-        label="City"
-        value={filters.city}
-        options={facets.cities.map((city) => ({ value: city, label: city }))}
-        onChange={(value) => onPatch({ city: value })}
-        placeholder="All cities"
-        clearable
-      />
+      <div className={styles.group}>
+        <CheckboxGroup
+          legend="Space type"
+          options={facets.types.map((type) => ({ value: type, label: VENUE_TYPE_LABELS[type] }))}
+          value={filters.types}
+          onChange={(next) => onPatch({ types: toVenueTypes(next) })}
+        />
+      </div>
 
-      <CheckboxGroup
-        legend="Venue type"
-        options={facets.types.map((type) => ({ value: type, label: VENUE_TYPE_LABELS[type] }))}
-        value={filters.types}
-        onChange={(next) => onPatch({ types: toVenueTypes(next) })}
-      />
+      <div className={styles.group}>
+        <NumberRangeField
+          legend="Price per day"
+          min={filters.priceMin}
+          max={filters.priceMax}
+          onChange={({ min, max }) => onPatch({ priceMin: min, priceMax: max })}
+          bounds={{ min: facets.priceMin, max: facets.priceMax }}
+          unit="€"
+        />
+      </div>
 
-      <CheckboxGroup
-        legend="Amenities"
-        options={facets.amenities.map((id) => ({ value: id, label: AMENITY_LABELS[id] }))}
-        value={filters.amenities}
-        onChange={(next) => onPatch({ amenities: toAmenityIds(next) })}
-        collapsible
-        visibleCount={6}
-      />
+      <div className={styles.group}>
+        <TextField
+          id={capacityId}
+          label="Guests"
+          inputMode="numeric"
+          value={debouncedCapacity.value}
+          onChange={(raw) => debouncedCapacity.setValue(toDigits(raw))}
+          onBlur={debouncedCapacity.flush}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') debouncedCapacity.flush()
+          }}
+          placeholder="Any number"
+          hint="Spaces that fit at least this many people"
+        />
+      </div>
 
-      <NumberRangeField
-        legend="Price per day"
-        min={filters.priceMin}
-        max={filters.priceMax}
-        onChange={({ min, max }) => onPatch({ priceMin: min, priceMax: max })}
-        bounds={{ min: facets.priceMin, max: facets.priceMax }}
-        unit="EUR"
-      />
+      <div className={styles.group}>
+        <CheckboxGroup
+          legend="Amenities"
+          options={facets.amenities.map((id) => ({ value: id, label: AMENITY_LABELS[id] }))}
+          value={filters.amenities}
+          onChange={(next) => onPatch({ amenities: toAmenityIds(next) })}
+          collapsible
+          visibleCount={5}
+        />
+      </div>
 
-      <TextField
-        id={capacityId}
-        label="Capacity"
-        type="text"
-        inputMode="numeric"
-        value={debouncedCapacity.value}
-        onChange={(raw) => debouncedCapacity.setValue(toDigits(raw))}
-        onBlur={debouncedCapacity.flush}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') debouncedCapacity.flush()
-        }}
-        placeholder="Minimum guests"
-      />
-
-      <button type="button" className={styles.resetButton} onClick={onReset} disabled={activeCount === 0}>
+      <button
+        type="button"
+        className={buttonClass({ variant: 'ghost', size: 'small', className: styles.resetButton })}
+        onClick={onReset}
+        disabled={activeCount === 0}
+      >
+        <ResetIcon />
         Reset filters
       </button>
     </div>

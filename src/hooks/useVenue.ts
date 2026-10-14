@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchVenueBySlug, isAbortError, NotFoundError } from '@/api'
+import { fetchVenueBySlug, getVenueWithAvailability, isAbortError, NotFoundError } from '@/api'
+import { isInitialRender } from '@/lib/initialRender'
 import type { VenueWithAvailability } from '@/types'
 
 export type UseVenueResult =
@@ -12,17 +13,33 @@ type VenueSnapshot =
   | { slug: string; key: string; error: null; data: VenueWithAvailability }
   | { slug: string; key: string; error: Error; data: VenueWithAvailability | null }
 
+// The prerendered first render resolves synchronously — see
+// lib/initialRender.ts. An unknown slug resolves to its not-found state.
+function seedSnapshot(slug: string): VenueSnapshot | null {
+  if (!isInitialRender()) return null
+  const key = `${slug}#0`
+  try {
+    return { slug, key, error: null, data: getVenueWithAvailability(slug) }
+  } catch (err) {
+    return { slug, key, error: err instanceof Error ? err : new Error('Unknown error'), data: null }
+  }
+}
+
 export function useVenue(slug: string): UseVenueResult {
-  const [snapshot, setSnapshot] = useState<VenueSnapshot | null>(null)
+  const [snapshot, setSnapshot] = useState<VenueSnapshot | null>(() => seedSnapshot(slug))
   const [retryTick, setRetryTick] = useState(0)
 
   const requestIdRef = useRef(0)
+  const seededKeyRef = useRef(snapshot?.key ?? null)
 
   const refetch = useCallback(() => setRetryTick((tick) => tick + 1), [])
 
   const requestKey = `${slug}#${retryTick}`
 
   useEffect(() => {
+    if (seededKeyRef.current === requestKey) return
+    seededKeyRef.current = null
+
     const requestId = ++requestIdRef.current
     const controller = new AbortController()
 

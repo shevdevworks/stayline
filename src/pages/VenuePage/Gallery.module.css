@@ -2,63 +2,110 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  min-width: 0;
 }
 
 .mainFrame {
-  aspect-ratio: 4 / 3;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  background: var(--surface-raised);
+  background: var(--image-placeholder);
 }
 
 .mainImage {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+.fadeIn {
+  animation: photo-in var(--duration-slow) var(--ease-out);
+}
+
+@keyframes photo-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.counter {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: rgb(20 26 23 / 0.72);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
 .thumbnails {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
-  overflow-x: auto;
+}
+
+@media (min-width: 48rem) {
+  .thumbnails {
+    gap: var(--space-3);
+  }
 }
 
 .thumbnailButton {
-  flex: 0 0 auto;
-  width: 5rem;
-  aspect-ratio: 4 / 3;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  cursor: pointer;
+  background: var(--image-placeholder);
+}
+
+/* Selected = solid accent ring and full opacity; the rest are slightly
+   dimmed, so the state reads without relying on colour alone. */
+.thumbnailButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: inherit;
   transition: border-color var(--duration-fast) ease;
 }
 
-.thumbnailButton:hover {
-  border-color: var(--border-strong);
+.thumbnailButton[aria-current='true']::after {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--surface);
 }
 
-.thumbnailButton[aria-current='true'] {
-  border-width: 2px;
-  border-color: var(--border-strong);
+.thumbnailButton:focus-visible {
+  border-radius: var(--radius-md);
 }
 
 .thumbnailImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  opacity: 0.78;
+  transition:
+    opacity var(--duration-fast) ease,
+    transform var(--duration-base) var(--ease-out);
+}
+
+.thumbnailButton[aria-current='true'] .thumbnailImage {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .thumbnailButton:hover .thumbnailImage {
+    opacity: 1;
+    transform: scale(1.03);
+  }
 }

@@ -12,32 +12,38 @@
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: 0 -6px 20px rgb(0 0 0 / 0.06);
+  transition:
+    transform var(--duration-slow) var(--ease-out),
+    opacity var(--duration-base) ease;
 }
 
-@media (min-width: 60rem) {
+.bar[data-hidden] {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 64rem) {
   .bar {
     display: none;
   }
 }
 
 .price {
-  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.priceValue {
   font-family: var(--font-family-heading);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
 
 .priceUnit {
-  font-family: var(--font-family-body);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-regular);
   color: var(--text-secondary);
-}
-
-.button {
-  padding: var(--space-3) var(--space-5);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
 }

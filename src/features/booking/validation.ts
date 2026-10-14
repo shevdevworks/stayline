@@ -36,10 +36,8 @@ export type BookingFieldErrors = {
   [K in BookingFieldName]?: BookingFieldErrorCodeMap[K]
 }
 
-// The outcome of assembling a BookingRequest from a draft. Not exported —
-// toBookingRequest is the public surface; nothing outside this file names
-// this type directly.
-type BookingRequestResult =
+// The outcome of assembling a BookingRequest from a draft.
+export type BookingRequestResult =
   | { ok: true; request: BookingRequest }
   | { ok: false; errors: BookingFieldErrors; firstErrorStep: BookingStep }
 
@@ -101,11 +99,30 @@ function parseName(raw: string | undefined): FieldResult<string, NameErrorCode> 
   return { ok: true, value: trimmed }
 }
 
-function isValidEmailFormat(value: string): boolean {
-  const atCount = (value.match(/@/g) ?? []).length
-  if (atCount !== 1) return false
-  const [local, domain] = value.split('@')
-  return local.length > 0 && domain.length > 0 && domain.includes('.')
+// Domain labels: letters (any script) or digits, hyphens only inside.
+const DOMAIN_LABEL = /^[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?$/u
+// Top-level domain: two or more letters, or a punycode (xn--) label.
+const TOP_LEVEL_DOMAIN = /^(?:\p{L}{2,}|xn--[a-z0-9-]+)$/iu
+
+// A shape check, deliberately not a full RFC 5322 parser: one @, a
+// non-empty local part without spaces, and a dotted domain whose labels
+// are non-empty. Catches typos like "a@.", "a@b" or "a@@b.com" and accepts
+// tags like name+tag@example.com. Passing it does not mean the mailbox
+// exists — only sending a message could tell that, and this demo doesn't.
+export function isValidEmailFormat(value: string): boolean {
+  if (value.length > 254 || /\s/.test(value)) return false
+
+  const at = value.indexOf('@')
+  if (at <= 0 || at !== value.lastIndexOf('@')) return false
+
+  const local = value.slice(0, at)
+  const domain = value.slice(at + 1)
+  if (local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false
+
+  const labels = domain.split('.')
+  if (labels.length < 2) return false
+  if (!labels.every((label) => label.length <= 63 && DOMAIN_LABEL.test(label))) return false
+  return TOP_LEVEL_DOMAIN.test(labels[labels.length - 1])
 }
 
 function parseEmail(raw: string | undefined): FieldResult<string, EmailErrorCode> {
@@ -194,6 +211,22 @@ export function validateStep(
 ): BookingFieldErrors {
   const errors = toFieldErrors(parseDraft(draft, constraints))
   return pickFields(errors, BOOKING_STEP_FIELDS[step])
+}
+
+// The inverse of toBookingRequest, so a request that arrives at the API can
+// be run through the exact same checks as the form — one rule set, not a
+// second copy that could drift from it.
+export function requestToDraft(request: BookingRequest): BookingDraft {
+  return {
+    checkIn: request.checkIn,
+    checkOut: request.checkOut,
+    guests: String(request.guests),
+    name: request.name,
+    email: request.email,
+    phone: request.phone,
+    comment: request.comment,
+    agreement: request.agreement,
+  }
 }
 
 export function toBookingRequest(

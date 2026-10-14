@@ -1,100 +1,122 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
+  gap: var(--space-5);
+  padding: var(--space-6);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-md);
 }
 
 .price {
-  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.priceValue {
   font-family: var(--font-family-heading);
-  font-size: var(--font-size-lg);
+  font-size: 1.75rem;
   font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .priceUnit {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-regular);
   color: var(--text-secondary);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Empty until there's something to say; the live region stays mounted. */
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--danger);
+}
+
+.message:empty {
+  display: none;
+}
+
+.message svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1875rem;
 }
 
 .breakdown {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  animation: rise-in var(--duration-base) var(--ease-out);
 }
 
-.breakdownLine {
-  margin: 0;
+.breakdownRow,
+.totalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.breakdownRow {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
-.total {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.totalLabel {
-  font-weight: var(--font-weight-medium);
-}
-
-.totalValue {
-  font-family: var(--font-family-heading);
-  font-size: var(--font-size-lg);
+.totalRow {
   font-weight: var(--font-weight-semibold);
 }
 
-.hint {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+.totalRow dd {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-lg);
 }
 
-.rejectionMessage {
+.demoNote {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-primary);
-}
-
-.warningIcon {
-  flex-shrink: 0;
-  width: var(--space-4);
-  height: var(--space-4);
-}
-
-.warningIcon svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.bookButton {
-  display: inline-block;
-  padding: var(--space-3) var(--space-5);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
-  text-align: center;
-}
-
-.bookButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.bookNote {
-  margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
+}
+
+.demoNote svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

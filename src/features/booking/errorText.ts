@@ -70,7 +70,7 @@ function emailText(code: EmailErrorCode): string {
     case 'required':
       return 'Enter your email address.'
     case 'invalid-format':
-      return 'Enter a valid email address.'
+      return 'Enter an email address like name@example.com.'
   }
 }
 
@@ -79,14 +79,14 @@ function phoneText(code: PhoneErrorCode): string {
     case 'required':
       return 'Enter your phone number.'
     case 'invalid-format':
-      return 'Enter a valid phone number.'
+      return 'Enter a phone number with 7 to 20 digits, e.g. +31 20 123 4567.'
   }
 }
 
 function agreementText(code: AgreementErrorCode): string {
   switch (code) {
     case 'not-checked':
-      return 'Confirm you agree to the terms before continuing.'
+      return 'Tick the box to confirm you’ve read the demo terms.'
   }
 }
 
@@ -112,10 +112,10 @@ export function bookingErrorText(args: BookingFieldErrorArgs, constraints: Booki
 export function submissionErrorText(code: BookingSubmissionErrorCode): string {
   switch (code) {
     case 'network':
-      return 'We could not reach the server. Please try again.'
+      return 'The demo booking service didn’t respond. Your details are kept — try again.'
     case 'unavailable':
-      return 'These dates are no longer available. Go back and choose different dates.'
+      return 'These dates were just taken. Edit the dates and try again.'
     case 'invalid':
-      return 'Some details are not valid. Go back and check your answers.'
+      return 'Some details need another look. They’re highlighted on the step shown.'
   }
 }

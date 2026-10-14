@@ -1,0 +1,96 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    transform var(--duration-instant) ease;
+}
+
+.button svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.button:active:not(:disabled, [aria-disabled='true']) {
+  transform: translateY(1px);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.primary:hover:not(:disabled, [aria-disabled='true']) {
+  background: var(--accent-hover);
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--border-field);
+  color: var(--text-primary);
+}
+
+.secondary:hover:not(:disabled, [aria-disabled='true']) {
+  border-color: var(--text-primary);
+  background: var(--surface-muted);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.ghost:hover:not(:disabled, [aria-disabled='true']) {
+  background: var(--surface-muted);
+}
+
+/* Disabled stays legible: faded colours, never opacity on text alone, and
+   the cursor plus aria-disabled carry the state alongside. */
+.button:disabled,
+.button[aria-disabled='true'] {
+  background: var(--surface-muted);
+  border-color: var(--border);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.small {
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.large {
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-6);
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}

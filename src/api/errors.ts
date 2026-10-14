@@ -11,3 +11,10 @@ export class BookingUnavailableError extends Error {
     this.name = 'BookingUnavailableError'
   }
 }
+
+export class BookingInvalidError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BookingInvalidError'
+  }
+}

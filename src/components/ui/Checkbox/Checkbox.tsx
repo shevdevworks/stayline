@@ -1,30 +1,10 @@
-import type { Ref } from 'react'
+import type { ReactNode, Ref } from 'react'
+import { CheckIcon } from '@/components/icons/Icons'
 import styles from './Checkbox.module.css'
-
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.checkIcon}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M5 13l4 4L19 7"
-      />
-    </svg>
-  )
-}
 
 export interface CheckboxProps {
   id: string
-  label: string
+  label: ReactNode
   checked: boolean
   onChange: (checked: boolean) => void
   description?: string
@@ -46,8 +26,7 @@ export function Checkbox({
   ref,
 }: CheckboxProps) {
   const descriptionId = `${id}-description`
-  const describedByIds =
-    [describedBy, description ? descriptionId : undefined].filter(Boolean).join(' ') || undefined
+  const describedByIds = [describedBy, description ? descriptionId : undefined].filter(Boolean).join(' ') || undefined
 
   const boxClassName = [styles.box, invalid && styles.invalid].filter(Boolean).join(' ')
 
@@ -66,7 +45,7 @@ export function Checkbox({
           aria-describedby={describedByIds}
         />
         <span className={boxClassName} aria-hidden="true">
-          <CheckIcon />
+          <CheckIcon className={styles.checkIcon} />
         </span>
         <span className={styles.optionLabel}>{label}</span>
       </label>

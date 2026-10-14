@@ -1,19 +1,46 @@
 .page {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 34rem;
+  margin: var(--space-8) auto 0;
+  padding: var(--space-10) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.mark svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.code {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.title {
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
 }
 
 .text {
   color: var(--text-secondary);
-}
-
-.link {
-  font-weight: var(--font-weight-medium);
-  text-decoration: underline;
-}
-
-.link:hover {
-  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
 }

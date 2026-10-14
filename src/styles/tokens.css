@@ -1,15 +1,6 @@
-/* Raw brand palette. Only these four colors exist in the project. */
 :root {
-  --ink: #1e2327;
-  --paper: #ffffff;
-  --void: #101214;
-  --slate: #6b7280;
-}
-
-:root {
-  /* Typography: major-third scale (ratio 1.25) off a 16px base, snapped to
-     a 4px grid. --font-size-sm breaks the ratio deliberately: 14px is the
-     conventional minimum legible UI/label size. */
+  /* Typography: 16px base. --font-size-sm (14px) is the floor for
+     secondary UI text; 12px is reserved for uppercase eyebrow labels. */
   --font-size-xs: 0.75rem; /* 12px */
   --font-size-sm: 0.875rem; /* 14px */
   --font-size-base: 1rem; /* 16px */
@@ -17,7 +8,8 @@
   --font-size-lg: 1.5rem; /* 24px */
   --font-size-xl: 2rem; /* 32px */
   --font-size-2xl: 2.5rem; /* 40px */
-  --font-size-3xl: 3rem; /* 48px, reserved for future display/hero use */
+  --font-size-3xl: 3rem; /* 48px */
+  --font-size-display: clamp(1.875rem, 1.2rem + 2.6vw, 3rem); /* 30 → 48px */
 
   --line-height-tight: 1.1;
   --line-height-snug: 1.25;
@@ -45,24 +37,28 @@
   --space-20: 5rem; /* 80px */
   --space-24: 6rem; /* 96px */
 
-  /* Component dimensions: named for what they measure, not theme-dependent,
-     so they live alongside the scale rather than the light/dark blocks. */
-  --header-height: var(--space-16);
+  /* Component dimensions: not theme-dependent. */
+  --header-height: 4rem; /* 64px */
+  --control-height: 2.75rem; /* 44px — minimum touch target */
+  --control-height-lg: 3rem; /* 48px */
+  --container-width: 80rem; /* 1280px including side padding */
+  --sidebar-width: 15rem; /* 240px */
 
-  /* Radius: doubling from a 2px base. */
-  --radius-xs: 0.125rem; /* 2px */
-  --radius-sm: 0.25rem; /* 4px */
-  --radius-md: 0.5rem; /* 8px */
-  --radius-lg: 1rem; /* 16px */
+  --radius-xs: 0.25rem; /* 4px */
+  --radius-sm: 0.5rem; /* 8px */
+  --radius-md: 0.625rem; /* 10px — buttons, fields */
+  --radius-lg: 0.875rem; /* 14px — cards, panels */
+  --radius-xl: 1.25rem; /* 20px — large media */
   --radius-full: 9999px;
 
-  /* Duration: geometric progression, ratio ~1.6, rounded to clean tens. */
+  /* Motion: controls 160–220ms, panels and transitions 240–320ms. */
   --duration-instant: 100ms;
-  --duration-fast: 150ms;
-  --duration-base: 250ms;
-  --duration-slow: 400ms;
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.25, 1);
 
-  /* Z-index: layered by stacking need, spaced by 10 for future insertions. */
   --z-dropdown: 10;
   --z-sticky: 20;
   --z-overlay: 30;
@@ -71,30 +67,67 @@
   --z-tooltip: 60;
 }
 
-/* Light theme (default). Semantic tokens built on the raw palette. */
+/* Light theme (default). */
 :root {
-  --surface: var(--paper);
-  --surface-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
-  --text-primary: var(--ink);
-  --text-secondary: var(--slate);
-  --border: color-mix(in srgb, var(--slate) 35%, var(--paper));
-  --border-strong: var(--slate);
-  --focus-ring: var(--ink);
-  --overlay: color-mix(in srgb, var(--ink) 55%, transparent);
+  --page: #f7f6f2;
+  --surface: #ffffff;
+  --surface-muted: #eef1ea;
+  --text-primary: #202822;
+  /* 4.9:1 on white, 4.55:1 on --page. Not used for body text on
+     --surface-muted, where it drops to 4.3:1. */
+  --text-secondary: #69736b;
+  --accent: #214d39;
+  --accent-hover: #193f2e;
+  --accent-soft: #e7efe7;
+  /* Text that sits on --accent-soft (badges, selected rows). */
+  --accent-text: #214d39;
+  --on-accent: #ffffff;
+  /* Decorative dividers only — never the sole edge of an input. */
+  --border: #dfe4dc;
+  /* Input and control edges: 3.1:1 against white (WCAG 1.4.11). */
+  --border-field: #8a968d;
+  --focus-ring: #397457;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --overlay: rgb(20 26 23 / 0.5);
+  --image-placeholder: #e4e8e0;
+
+  --shadow-sm: 0 1px 2px rgb(32 40 34 / 0.06);
+  --shadow-md: 0 1px 2px rgb(32 40 34 / 0.05), 0 8px 24px rgb(32 40 34 / 0.08);
+  --shadow-lg: 0 2px 6px rgb(32 40 34 / 0.06), 0 18px 48px rgb(32 40 34 / 0.14);
+
+  /* Legacy aliases kept so older modules keep resolving. */
+  --surface-raised: var(--surface-muted);
+  --border-strong: var(--border-field);
+
   color-scheme: light;
 }
 
-/* Dark theme. Must come after :root so it wins the cascade at equal
-   specificity when html[data-theme="dark"] is set. */
+/* Dark theme: the same calm green character, lifted for a dark ground.
+   Must come after :root so it wins at equal specificity. */
 [data-theme='dark'] {
-  --surface: var(--void);
-  --surface-raised: color-mix(in srgb, var(--paper) 6%, var(--void));
-  --text-primary: var(--paper);
-  /* Raw slate-on-void is ~3.9:1, failing AA text contrast; lighten it. */
-  --text-secondary: color-mix(in srgb, var(--paper) 20%, var(--slate));
-  --border: color-mix(in srgb, var(--slate) 35%, var(--void));
-  --border-strong: var(--slate);
-  --focus-ring: var(--paper);
-  --overlay: color-mix(in srgb, var(--void) 70%, transparent);
+  --page: #141a17;
+  --surface: #1d2721;
+  --surface-muted: #25312a;
+  --text-primary: #f2f5ef;
+  --text-secondary: #b3bdb5;
+  --accent: #9ac8ab;
+  --accent-hover: #b2d8bf;
+  --accent-soft: #233a2d;
+  --accent-text: #b8dcc4;
+  --on-accent: #14251b;
+  --border: #425148;
+  /* 4:1 against --surface. */
+  --border-field: #74867b;
+  --focus-ring: #9ac8ab;
+  --danger: #f97066;
+  --danger-soft: #3a201d;
+  --overlay: rgb(0 0 0 / 0.6);
+  --image-placeholder: #26302a;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.28);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.45);
+
   color-scheme: dark;
 }

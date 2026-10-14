@@ -72,7 +72,7 @@ export function CheckboxGroup({
       {shouldCollapse && (
         <>
           {expanded && (
-            <div ref={hiddenRef} id={hiddenId} className={styles.list}>
+            <div ref={hiddenRef} id={hiddenId} className={`${styles.list} ${styles.revealed}`}>
               {hiddenOptions.map(renderOption)}
             </div>
           )}

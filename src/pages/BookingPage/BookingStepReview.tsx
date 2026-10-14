@@ -2,19 +2,16 @@ import { useId, type RefObject } from 'react'
 import { Checkbox } from '@/components/ui/Checkbox/Checkbox'
 import { bookingErrorText } from '@/features/booking/errorText'
 import type { BookingSetFieldPayload } from '@/features/booking/formState'
-import type { BookingDraft, BookingValidationConstraints } from '@/features/booking/types'
+import { quoteBooking } from '@/features/booking/pricing'
+import type { BookingDraft, BookingStep, BookingValidationConstraints } from '@/features/booking/types'
 import type { BookingFieldErrors } from '@/features/booking/validation'
-import { formatShortDateLabel } from '@/lib/date/format'
+import { formatDateLabel } from '@/lib/date/format'
 import { daysLabel } from '@/lib/daysLabel'
-import { rangeLengthDays } from '@/lib/date/isoDate'
+import { guestsLabel } from '@/lib/guestsLabel'
 import { formatPrice } from '@/lib/price'
 import type { VenueDetail } from '@/types'
 import { BookingFieldError } from './BookingFieldError'
 import styles from './BookingPage.module.css'
-
-function guestsLabel(guests: string): string {
-  return `${guests} ${guests === '1' ? 'guest' : 'guests'}`
-}
 
 export interface BookingStepReviewProps {
   venue: VenueDetail
@@ -23,6 +20,7 @@ export interface BookingStepReviewProps {
   constraints: BookingValidationConstraints
   setField: (payload: BookingSetFieldPayload) => void
   blurField: (field: 'agreement') => void
+  onEdit: (step: BookingStep) => void
   headingRef: RefObject<HTMLHeadingElement | null>
   agreementFieldRef: RefObject<HTMLInputElement | null>
 }
@@ -34,19 +32,20 @@ export function BookingStepReview({
   constraints,
   setField,
   blurField,
+  onEdit,
   headingRef,
   agreementFieldRef,
 }: BookingStepReviewProps) {
   const uid = useId()
   const agreementId = `${uid}-agreement`
   const agreementErrorId = `${agreementId}-error`
+  const termsId = `${uid}-terms`
   const missingSummaryId = `${uid}-missing-summary`
 
   const { checkIn, checkOut, guests } = draft
 
-  // Practically unreachable — step 1 never advances without a valid, complete
-  // date range and guest count — but if it ever happens, a visible message
-  // beats the price/total rows silently vanishing from the summary.
+  // Practically unreachable — step 1 never advances without a valid range
+  // and guest count — but a visible message beats an empty summary.
   if (checkIn === undefined || checkOut === undefined || guests === undefined) {
     return (
       <div className={styles.step}>
@@ -55,13 +54,13 @@ export function BookingStepReview({
         </h2>
         <BookingFieldError
           id={missingSummaryId}
-          message="Dates and guests are missing. Use Back to return to the first step and select them."
+          message="Dates and guests are missing. Use Back to return to the first step and choose them."
         />
       </div>
     )
   }
 
-  const days = rangeLengthDays(checkIn, checkOut)
+  const quote = quoteBooking(venue.pricePerDay, checkIn, checkOut)
 
   return (
     <div className={styles.step}>
@@ -69,47 +68,105 @@ export function BookingStepReview({
         Review and confirm
       </h2>
 
-      <dl className={styles.summary}>
-        <div className={styles.summaryRow}>
-          <dt>Check-in</dt>
-          <dd>{formatShortDateLabel(checkIn)}</dd>
+      <section className={styles.reviewBlock} aria-labelledby={`${uid}-dates`}>
+        <div className={styles.reviewBlockHead}>
+          <h3 id={`${uid}-dates`} className={styles.reviewTitle}>
+            Dates and guests
+          </h3>
+          <button type="button" className={styles.editButton} onClick={() => onEdit(1)}>
+            Edit<span className="sr-only"> dates and guests</span>
+          </button>
         </div>
-        <div className={styles.summaryRow}>
-          <dt>Check-out</dt>
-          <dd>{formatShortDateLabel(checkOut)}</dd>
-        </div>
-        <div className={styles.summaryRow}>
-          <dt>Guests</dt>
-          <dd>{guestsLabel(guests)}</dd>
-        </div>
-        <div className={styles.summaryRow}>
-          <dt>Price</dt>
-          <dd>
-            {formatPrice(venue.pricePerDay)} × {daysLabel(days)}
-          </dd>
-        </div>
-        <div className={styles.summaryTotal}>
-          <dt>Total</dt>
-          <dd>{formatPrice(venue.pricePerDay * days)}</dd>
-        </div>
-      </dl>
+        <dl className={styles.reviewList}>
+          <div className={styles.reviewRow}>
+            <dt>Check-in</dt>
+            <dd>{formatDateLabel(checkIn)}</dd>
+          </div>
+          <div className={styles.reviewRow}>
+            <dt>Check-out</dt>
+            <dd>{formatDateLabel(checkOut)}</dd>
+          </div>
+          <div className={styles.reviewRow}>
+            <dt>Guests</dt>
+            <dd>{guestsLabel(Number(guests))}</dd>
+          </div>
+        </dl>
+      </section>
 
-      <Checkbox
-        id={agreementId}
-        ref={agreementFieldRef}
-        label="I agree to the booking terms and conditions."
-        checked={draft.agreement ?? false}
-        onChange={(checked) => setField({ field: 'agreement', value: checked })}
-        onBlur={() => blurField('agreement')}
-        invalid={errors.agreement !== undefined}
-        describedBy={errors.agreement ? agreementErrorId : undefined}
-      />
-      <BookingFieldError
-        id={agreementErrorId}
-        message={
-          errors.agreement ? bookingErrorText({ field: 'agreement', code: errors.agreement }, constraints) : undefined
-        }
-      />
+      <section className={styles.reviewBlock} aria-labelledby={`${uid}-contact`}>
+        <div className={styles.reviewBlockHead}>
+          <h3 id={`${uid}-contact`} className={styles.reviewTitle}>
+            Your details
+          </h3>
+          <button type="button" className={styles.editButton} onClick={() => onEdit(2)}>
+            Edit<span className="sr-only"> your details</span>
+          </button>
+        </div>
+        <dl className={styles.reviewList}>
+          <div className={styles.reviewRow}>
+            <dt>Name</dt>
+            <dd>{draft.name?.trim()}</dd>
+          </div>
+          <div className={styles.reviewRow}>
+            <dt>Email</dt>
+            <dd className={styles.breakAnywhere}>{draft.email?.trim()}</dd>
+          </div>
+          <div className={styles.reviewRow}>
+            <dt>Phone</dt>
+            <dd>{draft.phone?.trim()}</dd>
+          </div>
+          {draft.comment?.trim() && (
+            <div className={styles.reviewRow}>
+              <dt>Note</dt>
+              <dd className={styles.preserveLines}>{draft.comment.trim()}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
+      <section className={styles.reviewBlock} aria-labelledby={`${uid}-price`}>
+        <h3 id={`${uid}-price`} className={styles.reviewTitle}>
+          Price
+        </h3>
+        <dl className={styles.reviewList}>
+          <div className={styles.reviewRow}>
+            <dt>
+              {formatPrice(quote.pricePerDay)} × {daysLabel(quote.days)}
+            </dt>
+            <dd>{formatPrice(quote.total)}</dd>
+          </div>
+          <div className={styles.reviewTotal}>
+            <dt>Total</dt>
+            <dd>{formatPrice(quote.total)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div className={styles.terms} id={termsId}>
+        <h3 className={styles.reviewTitle}>Demo terms</h3>
+        <ul className={styles.termsList}>
+          <li>Stayline is a portfolio demo. Confirming does not reserve this space or contact a host.</li>
+          <li>No payment is taken and no confirmation email is sent.</li>
+          <li>Your details stay in this browser tab and are discarded when you leave the page.</li>
+        </ul>
+      </div>
+
+      <div className={styles.fieldGroup}>
+        <Checkbox
+          id={agreementId}
+          ref={agreementFieldRef}
+          label="I’ve read the demo terms and understand this is not a real booking."
+          checked={draft.agreement ?? false}
+          onChange={(checked) => setField({ field: 'agreement', value: checked })}
+          onBlur={() => blurField('agreement')}
+          invalid={errors.agreement !== undefined}
+          describedBy={`${agreementErrorId} ${termsId}`}
+        />
+        <BookingFieldError
+          id={agreementErrorId}
+          message={errors.agreement ? bookingErrorText({ field: 'agreement', code: errors.agreement }, constraints) : undefined}
+        />
+      </div>
     </div>
   )
 }

@@ -9,30 +9,42 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
-  border: 1px solid var(--border-strong);
+  min-height: 2.25rem;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border: 1px solid var(--border);
   border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-5);
-  height: var(--space-5);
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: var(--radius-full);
   color: inherit;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.remove:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
 }
 
 .removeIcon {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .clearAll {
+  min-height: 2.25rem;
+  padding: 0 var(--space-2);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
   text-decoration: underline;
-  padding: var(--space-1) var(--space-2);
+  text-underline-offset: 3px;
 }

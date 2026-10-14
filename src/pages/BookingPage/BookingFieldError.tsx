@@ -6,9 +6,9 @@ export interface BookingFieldErrorProps {
   message?: string
 }
 
-// Renders even with no message: describedBy on the field it belongs to
-// points at this id unconditionally, so the paragraph must exist before
-// there's anything to say.
+// Renders even with no message: the field's aria-describedby points at
+// this id, and a live region must already exist to be announced when text
+// appears. Hidden by CSS (:empty) while there is nothing to say.
 export function BookingFieldError({ id, message }: BookingFieldErrorProps) {
   return (
     <p id={id} className={styles.fieldError} aria-live="polite">
@@ -16,8 +16,8 @@ export function BookingFieldError({ id, message }: BookingFieldErrorProps) {
         <>
           <span className={styles.warningIcon}>
             <AlertTriangleIcon />
-          </span>{' '}
-          {message}
+          </span>
+          <span>{message}</span>
         </>
       )}
     </p>

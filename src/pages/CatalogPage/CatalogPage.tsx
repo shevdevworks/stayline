@@ -1,10 +1,14 @@
+import { useId } from 'react'
 import { EmptyState } from '@/components/EmptyState/EmptyState'
+import { AlertTriangleIcon } from '@/components/icons/AlertTriangleIcon'
+import { SearchIcon } from '@/components/icons/Icons'
 import { Select } from '@/components/ui/Select/Select'
 import { VenueCard } from '@/components/VenueCard/VenueCard'
 import { VenueCardSkeleton } from '@/components/VenueCardSkeleton/VenueCardSkeleton'
 import { ActiveFilterChips } from '@/features/filters/components/ActiveFilterChips/ActiveFilterChips'
 import { FilterDrawer } from '@/features/filters/components/FilterDrawer/FilterDrawer'
 import { FilterPanel } from '@/features/filters/components/FilterPanel/FilterPanel'
+import { SearchBar } from '@/features/filters/components/SearchBar/SearchBar'
 import { isSortKey } from '@/features/filters/filterParams'
 import { SORT_KEYS } from '@/features/filters/types'
 import type { SortKey } from '@/features/filters/types'
@@ -17,73 +21,81 @@ const SORT_LABELS: Record<SortKey, string> = {
   recommended: 'Recommended',
   'price-asc': 'Price: low to high',
   'price-desc': 'Price: high to low',
-  'capacity-desc': 'Capacity: high to low',
+  'capacity-desc': 'Most guests',
 }
 
 const SORT_OPTIONS = SORT_KEYS.map((key) => ({ value: key, label: SORT_LABELS[key] }))
 
-function SearchOffIcon() {
-  return (
-    <svg viewBox="0 0 24 24" role="presentation" aria-hidden="true">
-      <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
-      <line x1="14.5" y1="14.5" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="7" y1="7" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="13" y1="7" x2="7" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function AlertTriangleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" role="presentation" aria-hidden="true">
-      <path
-        d="M12 3.5 21.5 20h-19L12 3.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <line x1="12" y1="9.5" x2="12" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  )
+function spacesLabel(count: number): string {
+  return `${count} ${count === 1 ? 'space' : 'spaces'}`
 }
 
 export function CatalogPage() {
+  const uid = useId()
+  const resultsHeadingId = `${uid}-results`
   const { filters, patchFilters, resetFilters, activeCount } = useVenueFilters()
   const { data, status, isFetching, refetch } = useVenues(filters)
   const { facets, status: facetsStatus, refetch: refetchFacets } = useFilterFacets()
 
+  const hasCount = status === 'success' || status === 'empty'
+
+  const panelProps = {
+    filters,
+    facets,
+    facetsStatus,
+    onFacetsRetry: refetchFacets,
+    onPatch: patchFilters,
+    onReset: resetFilters,
+    activeCount,
+  }
+
   return (
     <>
-      <div className={styles.header}>
-        <h1>Find your space</h1>
-        <p className={styles.subtitle}>Studios, coworking desks and meeting rooms, ready to book.</p>
-      </div>
+      <section className={styles.intro} aria-labelledby={`${uid}-title`}>
+        <h1 id={`${uid}-title`} className={styles.title}>
+          Find your space.
+        </h1>
+        <p className={styles.subtitle}>Studios, meeting rooms and coworking across Europe.</p>
+        <div className={styles.search}>
+          <SearchBar query={filters.query} onQueryChange={(query) => patchFilters({ query })} />
+        </div>
+      </section>
 
       <div className={styles.layout}>
-        <aside className={styles.sidebar}>
-          <FilterPanel
-            filters={filters}
-            facets={facets}
-            facetsStatus={facetsStatus}
-            onFacetsRetry={refetchFacets}
-            onPatch={patchFilters}
-            onReset={resetFilters}
-            activeCount={activeCount}
-          />
+        <aside className={styles.sidebar} aria-label="Filters">
+          <div className={styles.sidebarInner}>
+            <h2 className={styles.sidebarTitle}>Filters</h2>
+            <FilterPanel {...panelProps} />
+          </div>
         </aside>
 
-        <div className={styles.content}>
-          <FilterDrawer
-            filters={filters}
-            facets={facets}
-            facetsStatus={facetsStatus}
-            onFacetsRetry={refetchFacets}
-            onPatch={patchFilters}
-            onReset={resetFilters}
-            activeCount={activeCount}
-          />
+        <section className={styles.content} aria-labelledby={resultsHeadingId}>
+          <div className={styles.toolbar}>
+            <div className={styles.toolbarText}>
+              <h2 id={resultsHeadingId} className={styles.resultsTitle}>
+                Spaces to make things happen
+              </h2>
+              <p className={styles.count} aria-live="polite">
+                {hasCount ? spacesLabel(data.length) : 'Loading spaces…'}
+                {hasCount && isFetching && <span className={styles.updating}> · updating</span>}
+              </p>
+            </div>
+            <div className={styles.toolbarControls}>
+              <FilterDrawer {...panelProps} resultCount={hasCount ? data.length : null} />
+              <Select
+                id={`${uid}-sort`}
+                label="Sort by"
+                layout="inline"
+                className={styles.sort}
+                labelClassName={styles.sortLabel}
+                value={filters.sort}
+                options={SORT_OPTIONS}
+                onChange={(value) => {
+                  if (value !== null && isSortKey(value)) patchFilters({ sort: value })
+                }}
+              />
+            </div>
+          </div>
 
           <ActiveFilterChips
             filters={filters}
@@ -93,27 +105,9 @@ export function CatalogPage() {
             activeCount={activeCount}
           />
 
-          <div className={styles.sortRow}>
-            {(status === 'success' || status === 'empty') && (
-              <p className={styles.count} aria-live="polite">
-                {data.length} {data.length === 1 ? 'venue' : 'venues'} found
-                {isFetching ? ' — updating…' : ''}
-              </p>
-            )}
-            <Select
-              id="sort"
-              label="Sort by"
-              value={filters.sort}
-              options={SORT_OPTIONS}
-              onChange={(value) => {
-                if (value !== null && isSortKey(value)) patchFilters({ sort: value })
-              }}
-            />
-          </div>
-
           {status === 'loading' && (
-            <div className={styles.grid} aria-busy="true" aria-live="polite">
-              {Array.from({ length: 6 }, (_, index) => (
+            <div className={styles.grid} aria-busy="true">
+              {Array.from({ length: 4 }, (_, index) => (
                 <VenueCardSkeleton key={index} />
               ))}
             </div>
@@ -122,36 +116,38 @@ export function CatalogPage() {
           {status === 'error' && (
             <EmptyState
               icon={<AlertTriangleIcon />}
-              title="Something went wrong"
-              description="We couldn't load venues right now. Please try again."
-              action={{ label: 'Retry', onClick: () => !isFetching && refetch() }}
+              title="Spaces couldn't be loaded"
+              description="Something went wrong while loading the catalog. Your filters are kept — try again."
+              action={{ label: 'Try again', onClick: () => !isFetching && refetch() }}
             />
           )}
 
           {status === 'empty' &&
             (activeCount > 0 ? (
               <EmptyState
-                icon={<SearchOffIcon />}
-                title="No venues match your filters"
-                description="Try removing some filters or reset them all."
+                icon={<SearchIcon />}
+                title="No spaces match these filters"
+                description="Try another city, a wider price range or fewer amenities — or start over."
                 action={{ label: 'Reset filters', onClick: resetFilters }}
               />
             ) : (
               <EmptyState
-                icon={<SearchOffIcon />}
-                title="No venues found"
-                description="There are no venues to show right now."
+                icon={<SearchIcon />}
+                title="No spaces yet"
+                description="There are no spaces to show right now."
               />
             ))}
 
           {status === 'success' && (
-            <div className={styles.grid}>
-              {data.map((venue) => (
-                <VenueCard key={venue.slug} venue={venue} />
+            <ul className={styles.grid} data-fetching={isFetching || undefined}>
+              {data.map((venue, index) => (
+                <li key={venue.slug} className={styles.gridItem}>
+                  <VenueCard venue={venue} priority={index === 0 ? 'high' : index < 2 ? 'eager' : 'lazy'} />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
       </div>
     </>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { buttonClass } from '@/components/ui/Button/buttonClass'
 import { formatPrice } from '@/lib/price'
 import styles from './MobileBookBar.module.css'
 
@@ -10,15 +11,19 @@ export interface MobileBookBarProps {
 
 // Below the desktop breakpoint the price panel sits after the whole
 // description, so without this the only way to book is a long scroll.
-// Hidden via CSS on desktop, where the panel is a sticky sidebar anyway.
+// Hidden via CSS on desktop, where the panel is a sidebar anyway, and
+// hidden here once the panel is on screen or already scrolled past (so it
+// never sits on top of the footer).
 export function MobileBookBar({ pricePerDay, targetId }: MobileBookBarProps) {
-  const [isTargetVisible, setIsTargetVisible] = useState(false)
+  const [isHidden, setIsHidden] = useState(false)
 
   useEffect(() => {
     const target = document.getElementById(targetId)
     if (!target) return
 
-    const observer = new IntersectionObserver(([entry]) => setIsTargetVisible(entry.isIntersecting))
+    const observer = new IntersectionObserver(([entry]) =>
+      setIsHidden(entry.isIntersecting || entry.boundingClientRect.bottom < 0),
+    )
     observer.observe(target)
     return () => observer.disconnect()
   }, [targetId])
@@ -32,15 +37,14 @@ export function MobileBookBar({ pricePerDay, targetId }: MobileBookBarProps) {
     target.focus({ preventScroll: true })
   }
 
-  if (isTargetVisible) return null
-
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} data-hidden={isHidden || undefined} inert={isHidden}>
       <p className={styles.price}>
-        {formatPrice(pricePerDay)} <span className={styles.priceUnit}>/ day</span>
+        <span className={styles.priceValue}>{formatPrice(pricePerDay)}</span>
+        <span className={styles.priceUnit}> / day</span>
       </p>
-      <button type="button" className={styles.button} onClick={handleClick}>
-        Check dates
+      <button type="button" className={buttonClass()} onClick={handleClick}>
+        Check availability
       </button>
     </div>
   )

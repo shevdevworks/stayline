@@ -67,6 +67,20 @@ interface BackAction {
   type: 'back'
 }
 
+// Jumps back to an earlier step — the review step's "Edit" links. Never
+// forward: moving ahead always goes through 'next' and its validation.
+interface GoToStepAction {
+  type: 'goToStep'
+  step: BookingStep
+}
+
+// The final check (toBookingRequest) found errors: show every one of them
+// and land on the earliest step that has one.
+interface ShowErrorsAction {
+  type: 'showErrors'
+  step: BookingStep
+}
+
 interface SubmitStartedAction {
   type: 'submitStarted'
 }
@@ -87,6 +101,8 @@ export type BookingFormAction =
   | BlurFieldAction
   | NextAction
   | BackAction
+  | GoToStepAction
+  | ShowErrorsAction
   | SubmitStartedAction
   | SubmitSucceededAction
   | SubmitFailedAction
@@ -200,6 +216,17 @@ export function bookingFormReducer(state: BookingFormState, action: BookingFormA
     case 'back': {
       const prev = stepByOffset(state.step, -1)
       return prev === state.step ? state : { ...state, step: prev }
+    }
+
+    case 'goToStep': {
+      const target = BOOKING_STEP_ORDER.indexOf(action.step)
+      if (target < 0 || target >= BOOKING_STEP_ORDER.indexOf(state.step)) return state
+      return { ...state, step: action.step }
+    }
+
+    case 'showErrors': {
+      const touched = markStepFieldsTouched(state.touched, Object.keys(state.touched) as BookingFieldName[])
+      return { ...state, touched, step: action.step }
     }
 
     case 'submitStarted':

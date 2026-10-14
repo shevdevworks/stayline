@@ -20,6 +20,8 @@ export interface BookingStepContactsProps {
   phoneFieldRef: RefObject<HTMLInputElement | null>
 }
 
+// Contact details live only in React state for this tab: never in the URL
+// (which carries just dates and guests) and never in storage.
 export function BookingStepContacts({
   draft,
   errors,
@@ -43,64 +45,87 @@ export function BookingStepContacts({
   return (
     <div className={styles.step}>
       <h2 ref={headingRef} tabIndex={-1} className={styles.stepHeading}>
-        Contact details
+        Your details
       </h2>
+      <p className={styles.stepIntro}>
+        Used only to fill in this demo summary. Nothing is sent anywhere or saved after you close the tab.
+      </p>
 
-      <TextField
-        id={nameId}
-        ref={nameFieldRef}
-        label="Name"
-        value={draft.name ?? ''}
-        onChange={(value) => setField({ field: 'name', value })}
-        onBlur={() => blurField('name')}
-        describedBy={errors.name ? nameErrorId : undefined}
-        invalid={errors.name !== undefined}
-      />
-      <BookingFieldError
-        id={nameErrorId}
-        message={errors.name ? bookingErrorText({ field: 'name', code: errors.name }, constraints) : undefined}
-      />
+      <div className={styles.fieldGroup}>
+        <TextField
+          id={nameId}
+          ref={nameFieldRef}
+          label="Full name"
+          name="name"
+          autoComplete="name"
+          required
+          value={draft.name ?? ''}
+          onChange={(value) => setField({ field: 'name', value })}
+          onBlur={() => blurField('name')}
+          describedBy={nameErrorId}
+          invalid={errors.name !== undefined}
+        />
+        <BookingFieldError
+          id={nameErrorId}
+          message={errors.name ? bookingErrorText({ field: 'name', code: errors.name }, constraints) : undefined}
+        />
+      </div>
 
-      <TextField
-        id={emailId}
-        ref={emailFieldRef}
-        label="Email"
-        type="text"
-        inputMode="email"
-        value={draft.email ?? ''}
-        onChange={(value) => setField({ field: 'email', value })}
-        onBlur={() => blurField('email')}
-        describedBy={errors.email ? emailErrorId : undefined}
-        invalid={errors.email !== undefined}
-      />
-      <BookingFieldError
-        id={emailErrorId}
-        message={errors.email ? bookingErrorText({ field: 'email', code: errors.email }, constraints) : undefined}
-      />
+      <div className={styles.fieldRow}>
+        <div className={styles.fieldGroup}>
+          <TextField
+            id={emailId}
+            ref={emailFieldRef}
+            label="Email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required
+            placeholder="name@example.com"
+            value={draft.email ?? ''}
+            onChange={(value) => setField({ field: 'email', value })}
+            onBlur={() => blurField('email')}
+            describedBy={emailErrorId}
+            invalid={errors.email !== undefined}
+          />
+          <BookingFieldError
+            id={emailErrorId}
+            message={errors.email ? bookingErrorText({ field: 'email', code: errors.email }, constraints) : undefined}
+          />
+        </div>
 
-      <TextField
-        id={phoneId}
-        ref={phoneFieldRef}
-        label="Phone"
-        type="text"
-        inputMode="tel"
-        value={draft.phone ?? ''}
-        onChange={(value) => setField({ field: 'phone', value })}
-        onBlur={() => blurField('phone')}
-        describedBy={errors.phone ? phoneErrorId : undefined}
-        invalid={errors.phone !== undefined}
-      />
-      <BookingFieldError
-        id={phoneErrorId}
-        message={errors.phone ? bookingErrorText({ field: 'phone', code: errors.phone }, constraints) : undefined}
-      />
+        <div className={styles.fieldGroup}>
+          <TextField
+            id={phoneId}
+            ref={phoneFieldRef}
+            label="Phone"
+            name="tel"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required
+            placeholder="+31 20 123 4567"
+            value={draft.phone ?? ''}
+            onChange={(value) => setField({ field: 'phone', value })}
+            onBlur={() => blurField('phone')}
+            describedBy={phoneErrorId}
+            invalid={errors.phone !== undefined}
+          />
+          <BookingFieldError
+            id={phoneErrorId}
+            message={errors.phone ? bookingErrorText({ field: 'phone', code: errors.phone }, constraints) : undefined}
+          />
+        </div>
+      </div>
 
       <TextArea
         id={commentId}
-        label="Comment"
+        label="Note for the host (optional)"
         value={draft.comment ?? ''}
         onChange={(value) => setField({ field: 'comment', value })}
-        hint="Optional — anything the venue should know ahead of your booking."
+        hint="Setup needs, arrival time, anything worth knowing."
+        rows={3}
       />
     </div>
   )

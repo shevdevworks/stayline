@@ -1,46 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { CheckIcon, ChevronDownIcon, CloseIcon } from '@/components/icons/Icons'
 import styles from './Select.module.css'
-
-function ChevronIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.chevron}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6 9l6 6 6-6"
-      />
-    </svg>
-  )
-}
-
-function ClearIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.icon}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        d="M6 6l12 12M18 6L6 18"
-      />
-    </svg>
-  )
-}
 
 export interface SelectOption {
   value: string
@@ -55,10 +15,19 @@ export interface SelectProps {
   onChange: (value: string | null) => void
   placeholder?: string
   clearable?: boolean
+  // 'inline' puts the label beside the control, for compact toolbars.
+  layout?: 'stacked' | 'inline'
+  className?: string
+  labelClassName?: string
 }
 
 const TYPEAHEAD_RESET_MS = 500
 
+// WAI-ARIA APG "select-only combobox": DOM focus never leaves the
+// combobox button. The listbox is never focused; the option the arrow keys
+// point at is exposed through aria-activedescendant on the combobox itself,
+// which is what screen readers follow. The listbox stays in the DOM (hidden
+// while closed) so aria-controls always points at a real element.
 export function Select({
   id,
   label,
@@ -67,12 +36,15 @@ export function Select({
   onChange,
   placeholder,
   clearable = false,
+  layout = 'stacked',
+  className,
+  labelClassName,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
+  const comboboxRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const typeaheadBufferRef = useRef('')
   const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -84,9 +56,7 @@ export function Select({
   const selectedIndex = value === null ? -1 : options.findIndex((option) => option.value === value)
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null
 
-  // Closes on any pointerdown outside the wrapper. Runs only while open, and
-  // is removed as soon as it closes so it never fights the trigger's own
-  // onClick toggle.
+  // Closes on any pointerdown outside the wrapper, without committing.
   useEffect(() => {
     if (!isOpen) return
 
@@ -100,59 +70,72 @@ export function Select({
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [isOpen])
 
+  // Keeps the active option visible inside a scrolling listbox.
   useEffect(() => {
     if (!isOpen) return
-    const activeElement = listRef.current?.querySelector<HTMLLIElement>(
-      `[data-index="${activeIndex}"]`,
-    )
-    activeElement?.scrollIntoView({ block: 'nearest' })
+    listRef.current
+      ?.querySelector<HTMLLIElement>(`[data-index="${activeIndex}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
   }, [isOpen, activeIndex])
 
   useEffect(() => () => clearTimeout(typeaheadTimerRef.current), [])
 
-  function openList() {
-    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0)
+  function open(index = selectedIndex >= 0 ? selectedIndex : 0) {
+    setActiveIndex(index)
     setIsOpen(true)
   }
 
-  function closeAndFocus() {
+  function close() {
     setIsOpen(false)
-    // Explicit, ref-based: never rely on DOM order or default browser focus
-    // handling to land back on the trigger.
-    triggerRef.current?.focus()
   }
 
-  function commit(nextValue: string | null) {
-    onChange(nextValue)
-    closeAndFocus()
+  function commit(index: number) {
+    const option = options[index]
+    if (option && option.value !== value) onChange(option.value)
+    setIsOpen(false)
+    comboboxRef.current?.focus()
   }
 
   function handleClear() {
     onChange(null)
-    triggerRef.current?.focus()
+    comboboxRef.current?.focus()
   }
 
-  function typeaheadSearch(char: string) {
+  function findTypeaheadMatch(char: string): number {
     clearTimeout(typeaheadTimerRef.current)
     typeaheadBufferRef.current += char.toLowerCase()
-    const buffer = typeaheadBufferRef.current
-    const match = options.findIndex((option) => option.label.toLowerCase().startsWith(buffer))
-    if (match >= 0) setActiveIndex(match)
     typeaheadTimerRef.current = setTimeout(() => {
       typeaheadBufferRef.current = ''
     }, TYPEAHEAD_RESET_MS)
+    const buffer = typeaheadBufferRef.current
+    return options.findIndex((option) => option.label.toLowerCase().startsWith(buffer))
   }
 
-  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const isPrintable = event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey
+    const lastIndex = options.length - 1
+
     if (!isOpen) {
-      if (
-        event.key === 'Enter' ||
-        event.key === ' ' ||
-        event.key === 'ArrowDown' ||
-        event.key === 'ArrowUp'
-      ) {
-        event.preventDefault()
-        openList()
+      switch (event.key) {
+        case 'ArrowDown':
+        case 'ArrowUp':
+        case 'Enter':
+        case ' ':
+          event.preventDefault()
+          open()
+          return
+        case 'Home':
+          event.preventDefault()
+          open(0)
+          return
+        case 'End':
+          event.preventDefault()
+          open(lastIndex)
+          return
+      }
+      if (isPrintable) {
+        const match = findTypeaheadMatch(event.key)
+        open(match >= 0 ? match : undefined)
       }
       return
     }
@@ -160,86 +143,93 @@ export function Select({
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault()
-        setActiveIndex((index) => Math.min(index + 1, options.length - 1))
+        setActiveIndex((index) => Math.min(index + 1, lastIndex))
         break
       case 'ArrowUp':
         event.preventDefault()
-        setActiveIndex((index) => Math.max(index - 1, 0))
+        if (event.altKey) commit(activeIndex)
+        else setActiveIndex((index) => Math.max(index - 1, 0))
         break
       case 'Home':
+      case 'PageUp':
         event.preventDefault()
         setActiveIndex(0)
         break
       case 'End':
+      case 'PageDown':
         event.preventDefault()
-        setActiveIndex(options.length - 1)
+        setActiveIndex(lastIndex)
         break
       case 'Enter':
+      case ' ':
         event.preventDefault()
-        if (options[activeIndex]) commit(options[activeIndex].value)
+        commit(activeIndex)
         break
       case 'Escape':
-        // Stops here so a parent layer (e.g. a mobile drawer in 5.3) does
-        // not also close on the same keypress.
+        // Stopped here so an enclosing dialog (the mobile filter drawer)
+        // doesn't close on the same keypress.
         event.preventDefault()
         event.stopPropagation()
-        closeAndFocus()
+        close()
         break
       case 'Tab':
-        setIsOpen(false)
-        // Focus is already on the trigger (it never left); this is a
-        // defensive, explicit assertion of that fact, not a preventDefault —
-        // the browser's default Tab action still moves focus onward from here.
-        triggerRef.current?.focus()
+        // APG: Tab accepts the active option, then focus moves on as usual.
+        commit(activeIndex)
         break
       default:
-        if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
-          typeaheadSearch(event.key)
+        if (isPrintable) {
+          const match = findTypeaheadMatch(event.key)
+          if (match >= 0) setActiveIndex(match)
         }
     }
   }
 
   return (
-    <div className={styles.wrapper} ref={wrapperRef}>
-      <span id={labelId} className={styles.label}>
+    <div
+      ref={wrapperRef}
+      className={[styles.wrapper, layout === 'inline' && styles.inline, className].filter(Boolean).join(' ')}
+    >
+      <span id={labelId} className={labelClassName ? `${styles.label} ${labelClassName}` : styles.label}>
         {label}
       </span>
       <div className={styles.control}>
         <button
-          ref={triggerRef}
+          ref={comboboxRef}
           id={id}
           type="button"
-          className={styles.trigger}
+          role="combobox"
+          className={styles.combobox}
           data-clearable={clearable && value !== null ? 'true' : undefined}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          aria-labelledby={`${labelId} ${id}`}
-          onClick={() => (isOpen ? closeAndFocus() : openList())}
-          onKeyDown={handleTriggerKeyDown}
+          aria-controls={listboxId}
+          aria-labelledby={labelId}
+          aria-activedescendant={isOpen ? optionId(activeIndex) : undefined}
+          onClick={() => (isOpen ? close() : open())}
+          onKeyDown={handleKeyDown}
+          onBlur={(event) => {
+            // Focus left for good (not just into the clear button).
+            if (!wrapperRef.current?.contains(event.relatedTarget as Node | null)) close()
+          }}
         >
-          <span className={styles.value}>{selectedOption ? selectedOption.label : placeholder ?? ''}</span>
-          <ChevronIcon />
+          <span className={selectedOption ? styles.value : styles.placeholder}>
+            {selectedOption ? selectedOption.label : (placeholder ?? '')}
+          </span>
+          <ChevronDownIcon className={styles.chevron} />
         </button>
         {clearable && value !== null && (
-          <button
-            type="button"
-            className={styles.clearButton}
-            aria-label={`Clear ${label}`}
-            onClick={handleClear}
-          >
-            <ClearIcon />
+          <button type="button" className={styles.clearButton} aria-label={`Clear ${label}`} onClick={handleClear}>
+            <CloseIcon className={styles.icon} />
           </button>
         )}
-      </div>
 
-      {isOpen && (
         <ul
+          ref={listRef}
           id={listboxId}
           role="listbox"
-          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
-          tabIndex={-1}
-          ref={listRef}
+          aria-labelledby={labelId}
           className={styles.listbox}
+          hidden={!isOpen}
         >
           {options.map((option, index) => (
             <li
@@ -249,18 +239,20 @@ export function Select({
               role="option"
               aria-selected={option.value === value}
               className={index === activeIndex ? `${styles.option} ${styles.optionActive}` : styles.option}
+              onPointerMove={() => setActiveIndex(index)}
               onPointerDown={(event) => {
-                // Select on pointerdown (before click) and preventDefault so
-                // the button never loses focus to the (non-focusable) li.
+                // Selecting on pointerdown with preventDefault keeps focus on
+                // the combobox instead of letting it fall to the <li>.
                 event.preventDefault()
-                commit(option.value)
+                commit(index)
               }}
             >
-              {option.label}
+              <span>{option.label}</span>
+              {option.value === value && <CheckIcon className={styles.check} />}
             </li>
           ))}
         </ul>
-      )}
+      </div>
     </div>
   )
 }

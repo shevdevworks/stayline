@@ -1,10 +1,14 @@
 import { findVenueBySlug } from '@/data/venues'
 import { getBookedRanges } from '@/data/bookedRanges'
-import { overlapsAnyRange, rangeLengthDays, todayIso } from '@/lib/date/isoDate'
+import { quoteBooking } from '@/features/booking/pricing'
 import type { BookingConfirmation, BookingRequest } from '@/features/booking/types'
-import { BookingUnavailableError, NotFoundError } from './errors'
+import { requestToDraft, toBookingRequest } from '@/features/booking/validation'
+import { todayIso } from '@/lib/date/isoDate'
+import { BookingInvalidError, BookingUnavailableError, NotFoundError } from './errors'
 import { simulateNetwork } from './delay'
 
+// Mock endpoint. Nothing leaves the browser: there is no reservation, no
+// payment and no email — the confirmation is generated locally.
 export async function submitBooking(
   slug: string,
   request: BookingRequest,
@@ -17,17 +21,29 @@ export async function submitBooking(
     throw new NotFoundError(`Venue with slug "${slug}" not found`)
   }
 
-  const requestedRange = { start: request.checkIn, end: request.checkOut }
-  if (overlapsAnyRange(requestedRange, getBookedRanges(slug, todayIso()))) {
-    throw new BookingUnavailableError(`Venue "${slug}" is not available for the selected dates`)
+  // Re-checks the whole request with the form's own rules, against
+  // availability as it is now — a real server would never trust the client.
+  const result = toBookingRequest(requestToDraft(request), {
+    minDays: venue.minDays,
+    maxDays: venue.maxDays,
+    capacity: venue.capacity,
+    bookedRanges: getBookedRanges(slug, todayIso()),
+    today: todayIso(),
+  })
+
+  if (!result.ok) {
+    if (result.errors.checkOut === 'unavailable') {
+      throw new BookingUnavailableError(`Venue "${slug}" is not available for the selected dates`)
+    }
+    throw new BookingInvalidError(`Booking request for "${slug}" failed validation`)
   }
 
-  const days = rangeLengthDays(request.checkIn, request.checkOut)
+  const { days, total } = quoteBooking(venue.pricePerDay, result.request.checkIn, result.request.checkOut)
 
   return {
-    id: `BK-${crypto.randomUUID().slice(0, 8)}`,
-    request,
-    total: days * venue.pricePerDay,
+    id: `DEMO-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    request: result.request,
+    total,
     days,
   }
 }

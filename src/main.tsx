@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { apiConfig } from '@/api'
 import { getBookedRanges } from '@/data/bookedRanges'
 import { todayIso } from '@/lib/date/isoDate'
@@ -12,9 +12,7 @@ import { App } from './App.tsx'
 // triggering without editing source (e.g. set
 // window.__staylineApi.config.failureRate = 1 in devtools), plus a helper to
 // inspect a venue's resolved booked ranges. Guarded by import.meta.env.DEV so
-// it is dead-code-eliminated from the production bundle. `config` holds the
-// same apiConfig reference simulateNetwork reads on every request, so writes
-// through it still take effect — apiConfig itself is left unmodified.
+// it is dead-code-eliminated from the production bundle.
 if (import.meta.env.DEV) {
   const staylineApi = {
     config: apiConfig,
@@ -23,10 +21,30 @@ if (import.meta.env.DEV) {
   ;(window as unknown as { __staylineApi: typeof staylineApi }).__staylineApi = staylineApi
 }
 
-createRoot(document.getElementById('root')!).render(
+const container = document.getElementById('root')!
+
+const app = (
   <StrictMode>
     <ThemeProvider>
       <App />
     </ThemeProvider>
-  </StrictMode>,
+  </StrictMode>
 )
+
+// Built pages carry prerendered markup for exactly one URL (no query
+// string), named in data-prerendered. Hydrate only when this visit is that
+// URL; anything else — filters in the query, a booking deep link served by
+// 404.html — renders fresh, replacing whatever static markup is there.
+function currentRoutePath(): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  const path = window.location.pathname.startsWith(base) ? window.location.pathname.slice(base.length) : '/'
+  return path === '' ? '/' : path.replace(/(.)\/$/, '$1')
+}
+
+const prerenderedPath = container.dataset.prerendered
+if (prerenderedPath !== undefined && prerenderedPath === currentRoutePath() && window.location.search === '') {
+  hydrateRoot(container, app)
+} else {
+  container.textContent = ''
+  createRoot(container).render(app)
+}

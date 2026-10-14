@@ -5,6 +5,7 @@ import {
 } from '@/hooks/useDateRangePicker'
 import { formatDateLabel } from '@/lib/date/format'
 import type { IsoDate, WeekStartsOn } from '@/lib/date/types'
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons/Icons'
 import styles from './Calendar.module.css'
 
 export interface CalendarProps extends UseDateRangePickerParams {
@@ -31,28 +32,6 @@ function getWeekdayLongLabels(weekStartsOn: WeekStartsOn, locale: string): strin
   }
 
   return labels
-}
-
-function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
-  const d = direction === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.navIcon}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d={d}
-      />
-    </svg>
-  )
 }
 
 export function Calendar(props: CalendarProps) {
@@ -205,7 +184,7 @@ export function Calendar(props: CalendarProps) {
           disabled={!canGoPrevious}
           onClick={goToPreviousMonth}
         >
-          <ChevronIcon direction="left" />
+          <ChevronLeftIcon className={styles.navIcon} />
         </button>
         <div className={styles.monthLabels}>
           {visibleMonths.map((month, index) => (
@@ -221,7 +200,7 @@ export function Calendar(props: CalendarProps) {
           disabled={!canGoNext}
           onClick={goToNextMonth}
         >
-          <ChevronIcon direction="right" />
+          <ChevronRightIcon className={styles.navIcon} />
         </button>
       </div>
       <div className={styles.months} onKeyDown={handleKeyDown} onMouseLeave={() => setHoveredDate(null)}>
@@ -282,6 +261,14 @@ export function Calendar(props: CalendarProps) {
           </table>
         ))}
       </div>
+      <p className={styles.legend} aria-hidden="true">
+        <span className={styles.legendItem}>
+          <span className={styles.legendStruck}>12</span> Unavailable
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendDot} /> Today
+        </span>
+      </p>
     </div>
   )
 }

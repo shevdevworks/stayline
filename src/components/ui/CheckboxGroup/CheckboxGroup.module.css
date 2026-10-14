@@ -4,41 +4,49 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .legend {
   padding: 0;
+  margin-bottom: var(--space-1);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  animation: checkbox-reveal var(--duration-fast) ease;
+}
+
+/* Only the newly revealed options animate, on an explicit "Show all". */
+.revealed {
+  animation: checkbox-reveal var(--duration-slow) var(--ease-out);
 }
 
 .toggle {
   align-self: flex-start;
+  min-height: 2.25rem;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-text);
   text-decoration: underline;
-  cursor: pointer;
+  text-underline-offset: 3px;
 }
 
 .toggle:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 @keyframes checkbox-reveal {
   from {
     opacity: 0;
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
+    transform: none;
   }
 }

@@ -1,31 +1,6 @@
-import {
-  useRef,
-  type ChangeEvent,
-  type HTMLAttributes,
-  type KeyboardEvent,
-  type Ref,
-} from 'react'
+import { useRef, type ChangeEvent, type HTMLAttributes, type KeyboardEvent, type Ref } from 'react'
+import { CloseIcon } from '@/components/icons/Icons'
 import styles from './TextField.module.css'
-
-function ClearIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={styles.icon}
-      role="presentation"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        d="M6 6l12 12M18 6L6 18"
-      />
-    </svg>
-  )
-}
 
 export interface TextFieldProps {
   id: string
@@ -33,10 +8,11 @@ export interface TextFieldProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
-  type?: 'text' | 'number'
+  type?: 'text' | 'email' | 'tel'
   inputMode?: HTMLAttributes<HTMLInputElement>['inputMode']
-  min?: number
-  max?: number
+  autoComplete?: string
+  name?: string
+  required?: boolean
   clearable?: boolean
   hint?: string
   invalid?: boolean
@@ -55,8 +31,9 @@ export function TextField({
   placeholder,
   type = 'text',
   inputMode,
-  min,
-  max,
+  autoComplete,
+  name,
+  required = false,
   clearable = false,
   hint,
   invalid = false,
@@ -68,12 +45,11 @@ export function TextField({
 }: TextFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const hintId = `${id}-hint`
-  const describedByIds =
-    [describedBy, hint ? hintId : undefined].filter(Boolean).join(' ') || undefined
+  // Error first, then the hint: the error is the more urgent description.
+  const describedByIds = [describedBy, hint ? hintId : undefined].filter(Boolean).join(' ') || undefined
 
   // Keeps the internally-used inputRef (Clear button refocus) and any
-  // externally-forwarded ref pointed at the same node, without an
-  // externally-supplied ref this still works standalone.
+  // externally-forwarded ref pointed at the same node.
   function setInputRef(node: HTMLInputElement | null) {
     inputRef.current = node
     if (typeof ref === 'function') ref(node)
@@ -97,34 +73,38 @@ export function TextField({
 
   return (
     <div className={styles.field}>
-      <label htmlFor={id} className={visuallyHiddenLabel ? styles.labelHidden : styles.label}>
+      <label htmlFor={id} className={visuallyHiddenLabel ? 'sr-only' : styles.label}>
         {label}
+        {required && !visuallyHiddenLabel && (
+          <span className={styles.required} aria-hidden="true">
+            {' '}
+            *
+          </span>
+        )}
       </label>
       <div className={styles.inputWrapper}>
         <input
           ref={setInputRef}
           id={id}
+          name={name}
           type={type}
           inputMode={inputMode}
-          min={min}
-          max={max}
+          autoComplete={autoComplete}
+          spellCheck={type === 'email' ? false : undefined}
+          autoCapitalize={type === 'email' ? 'off' : undefined}
           value={value}
           placeholder={placeholder}
           onChange={handleChange}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
+          aria-required={required || undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={describedByIds}
           className={inputClassName}
         />
         {clearable && value !== '' && (
-          <button
-            type="button"
-            className={styles.clearButton}
-            aria-label={`Clear ${label}`}
-            onClick={handleClear}
-          >
-            <ClearIcon />
+          <button type="button" className={styles.clearButton} aria-label={`Clear ${label}`} onClick={handleClear}>
+            <CloseIcon className={styles.icon} />
           </button>
         )}
       </div>

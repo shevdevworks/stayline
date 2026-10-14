@@ -1,22 +1,21 @@
 /* :where() keeps these rules at zero specificity so any single-class
-   sizing modifier a consumer composes in (e.g. `${styles.barLg}`) wins
-   regardless of CSS import order, instead of the two competing on equal
-   specificity. */
+   sizing modifier a consumer composes in wins regardless of CSS order. */
 :where(.text) {
   display: block;
   width: 100%;
   height: var(--space-4);
   border-radius: var(--radius-xs);
-  background: var(--surface-raised);
-  animation: pulse 1.5s ease-in-out infinite;
+  background: var(--surface-muted);
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
 :where(.block) {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  background: var(--surface-raised);
-  animation: pulse 1.5s ease-in-out infinite;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes pulse {
@@ -25,6 +24,6 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.55;
   }
 }

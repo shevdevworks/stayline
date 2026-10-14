@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BookingUnavailableError, submitBooking } from '@/api'
+import { BookingInvalidError, BookingUnavailableError, submitBooking } from '@/api'
 import { todayIso } from '@/lib/date/isoDate'
 import { parseBookingParams, toSearchParams } from './bookingParams'
 import { bookingFormReducer, createInitialFormState } from './formState'
@@ -8,6 +8,7 @@ import type { BookingSetFieldPayload, BookingTouched } from './formState'
 import { parseDraft, toBookingRequest, validateStep } from './validation'
 import type { BookingFieldErrors } from './validation'
 import { bookingParamsEqual, resultsToBookingParams } from './formUrl'
+import { createSubmissionGuard } from './submissionGuard'
 import { BOOKING_STEP_FIELDS } from './types'
 import type {
   BookingConstraints,
@@ -31,8 +32,16 @@ export interface UseBookingFormResult {
   blurField: (field: BookingFieldName) => void
   goBack: () => void
   goNext: () => { ok: true } | { ok: false; firstInvalidField: BookingFieldName }
-  submit: (slug: string) => void
+  goToStep: (step: BookingStep) => void
+  submit: (slug: string) => SubmitAttempt
 }
+
+// What a Confirm click led to, decided synchronously before any request:
+// 'invalid' carries where the first problem is so the page can move focus.
+export type SubmitAttempt =
+  | { type: 'started' }
+  | { type: 'ignored' }
+  | { type: 'invalid'; step: BookingStep; field: BookingFieldName }
 
 // URL -> draft: parseBookingParams already collapsed anything invalid to
 // null, so a missing/garbage param correctly becomes an empty draft field
@@ -111,6 +120,7 @@ export function useBookingForm(constraints: BookingConstraints): UseBookingFormR
   // StrictMode's mount/cleanup/remount in dev would otherwise leave it
   // false forever after the first cleanup.
   const mountedRef = useRef(true)
+  const [submissionGuard] = useState(createSubmissionGuard)
   useEffect(() => {
     mountedRef.current = true
     return () => {
@@ -167,38 +177,39 @@ export function useBookingForm(constraints: BookingConstraints): UseBookingFormR
     dispatch({ type: 'back' })
   }
 
-  async function submitAsync(slug: string): Promise<void> {
-    if (state.submission.type !== 'idle' && state.submission.type !== 'error') return
+  // Validates the whole draft with the same rules as the steps, then sends
+  // it. A click while a request is in flight (or after success) is ignored
+  // without touching the API — see submissionGuard.ts for why the reducer
+  // state alone can't guarantee that.
+  function submit(slug: string): SubmitAttempt {
+    if (state.submission.type === 'success' || submissionGuard.inFlight) return { type: 'ignored' }
 
     const result = toBookingRequest(state.draft, constraintsWithToday)
     if (!result.ok) {
-      // Passes through 'submitting' synchronously so submitFailed lands —
-      // the reducer only accepts submitSucceeded/submitFailed while a
-      // request is in flight (see formState.ts's isBlocked), which also
-      // protects this path from a stale/duplicate dispatch.
+      dispatch({ type: 'showErrors', step: result.firstErrorStep })
+      const field = BOOKING_STEP_FIELDS[result.firstErrorStep].find((name) => result.errors[name] !== undefined)
+      return { type: 'invalid', step: result.firstErrorStep, field: field ?? BOOKING_STEP_FIELDS[result.firstErrorStep][0] }
+    }
+
+    const request = result.request
+    const run = submissionGuard.run(async () => {
       dispatch({ type: 'submitStarted' })
-      dispatch({ type: 'submitFailed', code: 'invalid' })
-      return
-    }
-
-    dispatch({ type: 'submitStarted' })
-
-    try {
-      const confirmation = await submitBooking(slug, result.request)
-      if (mountedRef.current) dispatch({ type: 'submitSucceeded', confirmation })
-    } catch (err) {
-      if (mountedRef.current) {
-        const code = err instanceof BookingUnavailableError ? 'unavailable' : 'network'
-        dispatch({ type: 'submitFailed', code })
+      try {
+        const confirmation = await submitBooking(slug, request)
+        if (mountedRef.current) dispatch({ type: 'submitSucceeded', confirmation })
+      } catch (err) {
+        if (mountedRef.current) {
+          const code =
+            err instanceof BookingUnavailableError ? 'unavailable' : err instanceof BookingInvalidError ? 'invalid' : 'network'
+          dispatch({ type: 'submitFailed', code })
+        }
       }
-    }
+    })
+    return run === null ? { type: 'ignored' } : { type: 'started' }
   }
 
-  // Both callers are onClick handlers that never await this — the void
-  // wrapper makes that discard explicit here instead of relying on it being
-  // implied by UseBookingFormResult's void return type.
-  function submit(slug: string): void {
-    void submitAsync(slug)
+  function goToStep(step: BookingStep): void {
+    dispatch({ type: 'goToStep', step })
   }
 
   function goNext(): { ok: true } | { ok: false; firstInvalidField: BookingFieldName } {
@@ -223,6 +234,7 @@ export function useBookingForm(constraints: BookingConstraints): UseBookingFormR
     blurField,
     goBack,
     goNext,
+    goToStep,
     submit,
   }
 }

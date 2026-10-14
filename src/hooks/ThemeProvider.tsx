@@ -8,7 +8,9 @@ function readInitialTheme(): Theme {
   // The inline script in index.html already wrote the correct value to the
   // DOM before React mounted; reading it back (instead of re-deriving from
   // localStorage/matchMedia) keeps the first render consistent with what's
-  // already on screen and avoids a second flash.
+  // already on screen and avoids a second flash. At prerender time there is
+  // no document: the static HTML always renders the light default.
+  if (typeof document === 'undefined') return 'light'
   return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
 }
 

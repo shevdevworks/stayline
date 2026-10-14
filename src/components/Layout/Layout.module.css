@@ -3,26 +3,39 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .main {
   flex: 1;
-  padding: var(--space-8) 0;
+  padding-top: var(--space-6);
+}
+
+/* Focused only as the skip link's target, to move reading position. */
+.main:focus {
+  outline: none;
+}
+
+@media (min-width: 48rem) {
+  .main {
+    padding-top: var(--space-8);
+  }
 }
 
 .skipLink {
   position: absolute;
-  top: 0;
+  top: var(--space-2);
   left: var(--space-4);
   z-index: var(--z-tooltip);
-  transform: translateY(-100%);
+  transform: translateY(-200%);
   padding: var(--space-2) var(--space-4);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
-  transition: transform var(--duration-fast) ease;
+  font-weight: var(--font-weight-semibold);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .skipLink:focus-visible {

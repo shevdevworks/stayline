@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchVenues, isAbortError } from '@/api'
+import { fetchVenues, isAbortError, queryVenues } from '@/api'
+import { isInitialRender } from '@/lib/initialRender'
 import { parseFilters, toSearchParams } from './filterParams'
 import type { VenueFilters } from './types'
 import type { VenueSummary } from '@/types'
@@ -23,10 +24,21 @@ interface VenuesState {
 const INITIAL_STATE: VenuesState = { data: [], error: null, settledKey: null }
 
 export function useVenues(filters: VenueFilters): UseVenuesResult {
-  const [state, setState] = useState<VenuesState>(INITIAL_STATE)
+  // The prerendered first render resolves synchronously, already settled
+  // for its own request key (refetchTick 0), so it renders as success with
+  // no "updating" flag and matches the static HTML it hydrates.
+  const [state, setState] = useState<VenuesState>(() =>
+    isInitialRender()
+      ? { data: queryVenues(filters), error: null, settledKey: `${toSearchParams(filters).toString()}#0` }
+      : INITIAL_STATE,
+  )
   const [refetchTick, setRefetchTick] = useState(0)
 
   const requestIdRef = useRef(0)
+  // The key resolved synchronously above, if any: its effect run skips the
+  // network round trip. Cleared on the first different key so returning to
+  // the same filters later fetches normally.
+  const seededKeyRef = useRef(state.settledKey)
 
   const refetch = useCallback(() => setRefetchTick((tick) => tick + 1), [])
 
@@ -41,6 +53,9 @@ export function useVenues(filters: VenueFilters): UseVenuesResult {
   const isFetching = state.settledKey !== requestKey
 
   useEffect(() => {
+    if (seededKeyRef.current === requestKey) return
+    seededKeyRef.current = null
+
     const requestId = ++requestIdRef.current
     const controller = new AbortController()
     const currentFilters = parseFilters(new URLSearchParams(filtersKey))

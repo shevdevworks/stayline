@@ -4,11 +4,18 @@ import styles from './BookingPageSkeleton.module.css'
 export function BookingPageSkeleton() {
   return (
     <div aria-busy="true">
-      <p className={styles.srOnly}>Loading booking form…</p>
+      <p className="sr-only" role="status">
+        Loading booking form…
+      </p>
 
       <div className={styles.page} aria-hidden="true">
+        <Skeleton className={styles.backLink} />
         <Skeleton className={styles.title} />
-        <Skeleton variant="block" className={styles.form} />
+        <Skeleton className={styles.stepper} />
+        <div className={styles.layout}>
+          <Skeleton variant="block" className={styles.form} />
+          <Skeleton variant="block" className={styles.summary} />
+        </div>
       </div>
     </div>
   )

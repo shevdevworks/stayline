@@ -24,9 +24,9 @@ function RemoveIcon() {
 }
 
 function formatPriceChip(min: number | null, max: number | null): string | null {
-  if (min !== null && max !== null) return `${min}-${max} EUR`
-  if (min !== null) return `${min}+ EUR`
-  if (max !== null) return `up to ${max} EUR`
+  if (min !== null && max !== null) return `€${min}–€${max} a day`
+  if (min !== null) return `From €${min} a day`
+  if (max !== null) return `Up to €${max} a day`
   return null
 }
 
@@ -81,7 +81,7 @@ export function ActiveFilterChips({ filters, onPatch, onReset, activeCount }: Ac
   if (filters.capacity !== null) {
     chips.push({
       key: 'capacity',
-      text: `From ${filters.capacity} people`,
+      text: `${filters.capacity}+ guests`,
       onRemove: () => onPatch({ capacity: null }),
     })
   }

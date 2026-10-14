@@ -1,0 +1,118 @@
+.form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.form:hover {
+  border-color: var(--text-primary);
+}
+
+/* The whole bar reads as one field, so it carries the input's focus ring
+   (the Search button keeps its own). */
+.form:has(.input:focus-visible) {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 1px var(--focus-ring), var(--shadow-md);
+}
+
+.field {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.icon {
+  position: absolute;
+  left: var(--space-3);
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-10) 0 var(--space-10);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* The bar's own ring stands in for the input's. */
+.input:focus-visible {
+  outline: none;
+}
+
+/* Native search clear button duplicates ours. */
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.clear {
+  position: absolute;
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.clear svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.clear:hover {
+  color: var(--text-primary);
+  background: var(--surface-muted);
+}
+
+.submit {
+  flex-shrink: 0;
+  min-width: 8rem;
+}
+
+.submitIcon {
+  display: none;
+}
+
+/* Phones: the button shrinks to its icon so the input keeps its width. */
+@media (max-width: 29.99rem) {
+  .submit {
+    min-width: 0;
+    width: var(--control-height-lg);
+    padding: 0;
+  }
+
+  .submitIcon {
+    display: block;
+  }
+
+  .submitLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}

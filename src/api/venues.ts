@@ -12,20 +12,6 @@ function toSummary(venue: VenueDetail): VenueSummary {
   return { slug, name, type, city, pricePerDay, capacity, amenities, rating, coverImage: images[0] }
 }
 
-function computeFacets(source: VenueDetail[]): FilterFacets {
-  const cities = Array.from(new Set(source.map((venue) => venue.city))).sort()
-  const types = Array.from(new Set(source.map((venue) => venue.type))).sort()
-  const prices = source.map((venue) => venue.pricePerDay)
-
-  return {
-    cities,
-    types,
-    amenities: [...AMENITY_IDS],
-    priceMin: Math.min(...prices),
-    priceMax: Math.max(...prices),
-  }
-}
-
 function sortVenues(list: VenueDetail[], sort: SortKey): VenueDetail[] {
   switch (sort) {
     case 'recommended':
@@ -39,14 +25,25 @@ function sortVenues(list: VenueDetail[], sort: SortKey): VenueDetail[] {
   }
 }
 
-export async function fetchFilterFacets(signal?: AbortSignal): Promise<FilterFacets> {
-  await simulateNetwork(signal)
-  return computeFacets(venues)
+// The synchronous "server side" of each endpoint. The fetch* wrappers below
+// add simulated latency on top; the first, prerendered render calls these
+// directly (see lib/initialRender.ts).
+
+export function getFilterFacets(): FilterFacets {
+  const cities = Array.from(new Set(venues.map((venue) => venue.city))).sort()
+  const types = Array.from(new Set(venues.map((venue) => venue.type))).sort()
+  const prices = venues.map((venue) => venue.pricePerDay)
+
+  return {
+    cities,
+    types,
+    amenities: [...AMENITY_IDS],
+    priceMin: Math.min(...prices),
+    priceMax: Math.max(...prices),
+  }
 }
 
-export async function fetchVenues(filters: VenueFilters, signal?: AbortSignal): Promise<VenueSummary[]> {
-  await simulateNetwork(signal)
-
+export function queryVenues(filters: VenueFilters): VenueSummary[] {
   const query = filters.query.trim().toLowerCase()
   const city = filters.city?.trim().toLowerCase() ?? null
 
@@ -75,13 +72,26 @@ export async function fetchVenues(filters: VenueFilters, signal?: AbortSignal): 
   return sortVenues(filtered, filters.sort).map(toSummary)
 }
 
-export async function fetchVenueBySlug(slug: string, signal?: AbortSignal): Promise<VenueWithAvailability> {
-  await simulateNetwork(signal)
-
+export function getVenueWithAvailability(slug: string): VenueWithAvailability {
   const venue = findVenueBySlug(slug)
   if (!venue) {
     throw new NotFoundError(`Venue with slug "${slug}" not found`)
   }
 
   return { ...venue, bookedRanges: getBookedRanges(slug, todayIso()) }
+}
+
+export async function fetchFilterFacets(signal?: AbortSignal): Promise<FilterFacets> {
+  await simulateNetwork(signal)
+  return getFilterFacets()
+}
+
+export async function fetchVenues(filters: VenueFilters, signal?: AbortSignal): Promise<VenueSummary[]> {
+  await simulateNetwork(signal)
+  return queryVenues(filters)
+}
+
+export async function fetchVenueBySlug(slug: string, signal?: AbortSignal): Promise<VenueWithAvailability> {
+  await simulateNetwork(signal)
+  return getVenueWithAvailability(slug)
 }

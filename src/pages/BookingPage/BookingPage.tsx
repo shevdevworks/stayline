@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState, type RefObject } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeftIcon, InfoIcon } from '@/components/icons/Icons'
+import { buttonClass } from '@/components/ui/Button/buttonClass'
 import { VenueLoadError } from '@/components/VenueLoadError/VenueLoadError'
 import { VenueNotFound } from '@/components/VenueNotFound/VenueNotFound'
 import { submissionErrorText } from '@/features/booking/errorText'
-import { BOOKING_STEP_ORDER } from '@/features/booking/types'
-import type { BookingFieldName } from '@/features/booking/types'
+import type { BookingFieldName, BookingStep } from '@/features/booking/types'
 import { useBookingForm } from '@/features/booking/useBookingForm'
 import { useAnnouncedMessage } from '@/hooks/useAnnouncedMessage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -14,17 +15,17 @@ import { BookingFieldError } from './BookingFieldError'
 import { BookingPageSkeleton } from './BookingPageSkeleton'
 import { BookingStepContacts } from './BookingStepContacts'
 import { BookingStepDates } from './BookingStepDates'
+import { BookingStepper } from './BookingStepper'
 import { BookingStepReview } from './BookingStepReview'
 import { BookingSuccess } from './BookingSuccess'
+import { BookingSummary } from './BookingSummary'
 import styles from './BookingPage.module.css'
 
-// Where a step transition (or a rejected "Next"/"Confirm booking") should
-// send focus once the next render lands. The handler that decides this can't
-// move focus itself: on a step change, the old step's markup unmounts and the
-// browser synchronously drops focus onto <body> before the new step's own
-// heading exists in the DOM. Recording an intent and consuming it from an
-// effect (below) lets the DOM catch up first — same reasoning as Calendar's
-// keyboardMoveRef.
+// Where a step transition (or a rejected Continue/Confirm) should send
+// focus once the next render lands. The handler can't move focus itself: on
+// a step change the old step unmounts and the browser drops focus onto
+// <body> before the new step's heading exists. Recording an intent and
+// consuming it from an effect lets the DOM catch up first.
 type FocusIntent = { type: 'heading' } | { type: 'field'; field: BookingFieldName }
 
 interface BookingFormProps {
@@ -43,6 +44,7 @@ function BookingForm({ venue, slug }: BookingFormProps) {
     blurField,
     goBack,
     goNext,
+    goToStep,
     submission,
     submit,
   } = useBookingForm({
@@ -51,6 +53,8 @@ function BookingForm({ venue, slug }: BookingFormProps) {
     capacity: venue.capacity,
     bookedRanges: venue.bookedRanges,
   })
+
+  const [searchParams] = useSearchParams()
 
   const headingRef = useRef<HTMLHeadingElement>(null)
   const dateFieldRef = useRef<HTMLButtonElement>(null)
@@ -76,13 +80,10 @@ function BookingForm({ venue, slug }: BookingFormProps) {
   const formMessageId = useId()
   const submissionErrorId = useId()
 
-  // No dependency array: a rejected "Next"/"Confirm booking" on fields that
-  // were already touched leaves useBookingForm's state reference unchanged
-  // (the reducer bails out), so a [step]-keyed effect would never fire for
-  // it. The render that does happen in that case comes from announceRejection
-  // itself (its own useState, called right below in the same handler) — this
-  // effect has to run after every render to catch that one too. The ref-read
-  // at the top keeps it a no-op otherwise.
+  // No dependency array on purpose: a rejected Continue on already-touched
+  // fields leaves the reducer state unchanged, so the only render comes
+  // from announceRejection — this has to run after every render to catch
+  // it. The ref check keeps it a no-op otherwise.
   useEffect(() => {
     const intent = focusIntentRef.current
     if (intent === null) return
@@ -91,21 +92,10 @@ function BookingForm({ venue, slug }: BookingFormProps) {
     else fieldRefs[intent.field].current?.focus()
   })
 
-  // submission only gets a new object identity on an actual reducer
-  // transition (setField/setDateRange preserve it unless resetting an
-  // 'error' back to 'idle' — see formState.ts), so depending on the object
-  // itself is enough to fire exactly once per transition. Success is a
-  // terminal state (isBlocked freezes everything after it), so this can't
-  // re-fire once entered. Error needs no handling here — see the comment by
-  // the submissionError block below for why. Focuses directly instead of
-  // recording a FocusIntent: the intent-consuming effect above runs before
-  // this one in the same commit, and the success render is the last one, so
-  // an intent set here would never be picked up. The success heading is
-  // already in the DOM by the time this runs.
+  // Success is terminal and replaces the form; its heading is in the DOM
+  // by the time this runs.
   useEffect(() => {
-    if (submission.type === 'success') {
-      headingRef.current?.focus()
-    }
+    if (submission.type === 'success') headingRef.current?.focus()
   }, [submission])
 
   function handleRejection(field: BookingFieldName) {
@@ -124,19 +114,20 @@ function BookingForm({ venue, slug }: BookingFormProps) {
   }
 
   function handleConfirm() {
-    const result = goNext()
-    if (result.ok) {
+    const attempt = submit(slug)
+    if (attempt.type === 'invalid') {
+      handleRejection(attempt.field)
+    } else if (attempt.type === 'started') {
       announceRejection('')
-      setSubmissionAttempt((attempt) => attempt + 1)
-      submit(slug)
-    } else {
-      handleRejection(result.firstInvalidField)
+      setSubmissionAttempt((value) => value + 1)
     }
   }
 
-  function handleRetry() {
-    setSubmissionAttempt((attempt) => attempt + 1)
-    submit(slug)
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (submission.type === 'submitting') return
+    if (step === 3) handleConfirm()
+    else handleNext()
   }
 
   function handleBack() {
@@ -145,111 +136,137 @@ function BookingForm({ venue, slug }: BookingFormProps) {
     announceRejection('')
   }
 
+  function handleEdit(target: BookingStep) {
+    goToStep(target)
+    focusIntentRef.current = { type: 'heading' }
+    announceRejection('')
+  }
+
   if (submission.type === 'success') {
-    return <BookingSuccess confirmation={submission.confirmation} venue={venue} headingRef={headingRef} />
+    return (
+      <div className={styles.page}>
+        <BookingSuccess confirmation={submission.confirmation} venue={venue} headingRef={headingRef} />
+      </div>
+    )
+  }
+
+  const isSubmitting = submission.type === 'submitting'
+  const venueSearch = new URLSearchParams()
+  for (const key of ['check-in', 'check-out', 'guests']) {
+    const value = searchParams.get(key)
+    if (value !== null) venueSearch.set(key, value)
   }
 
   return (
     <div className={styles.page}>
-      <h1>{venue.name}</h1>
-      <p className={styles.stepIndicator}>
-        Step {step} of {BOOKING_STEP_ORDER.length}
-      </p>
-      <BookingFieldError id={formMessageId} message={rejectionText || undefined} />
+      <Link to={{ pathname: `/venue/${slug}`, search: venueSearch.toString() }} className={styles.backLink}>
+        <ArrowLeftIcon />
+        Back to {venue.name}
+      </Link>
 
-      {step === 1 && (
-        <BookingStepDates
-          draft={draft}
-          errors={errors}
-          constraints={constraints}
-          setField={setField}
-          setDateRange={setDateRange}
-          blurField={blurField}
-          headingRef={headingRef}
-          dateFieldRef={dateFieldRef}
-          guestsFieldRef={guestsFieldRef}
-        />
-      )}
-      {step === 2 && (
-        <BookingStepContacts
-          draft={draft}
-          errors={errors}
-          constraints={constraints}
-          setField={setField}
-          blurField={blurField}
-          headingRef={headingRef}
-          nameFieldRef={nameFieldRef}
-          emailFieldRef={emailFieldRef}
-          phoneFieldRef={phoneFieldRef}
-        />
-      )}
-      {step === 3 && (
-        <BookingStepReview
-          venue={venue}
-          draft={draft}
-          errors={errors}
-          constraints={constraints}
-          setField={setField}
-          blurField={blurField}
-          headingRef={headingRef}
-          agreementFieldRef={agreementFieldRef}
-        />
-      )}
+      <header className={styles.header}>
+        <h1 className={styles.title}>Request a booking</h1>
+        <p className={styles.demoBanner}>
+          <InfoIcon />
+          <span>
+            <strong>Demo booking.</strong> Nothing is reserved, charged or emailed.
+          </span>
+        </p>
+      </header>
 
-      <div className={styles.actions}>
-        {step > 1 && (
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={handleBack}
-            disabled={submission.type === 'submitting'}
-          >
-            Back
-          </button>
-        )}
-        {step < 3 ? (
-          <button type="button" className={styles.primaryButton} onClick={handleNext}>
-            Next
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={handleConfirm}
-            disabled={submission.type === 'submitting'}
-          >
-            {submission.type === 'submitting' ? 'Sending…' : 'Confirm booking'}
-          </button>
-        )}
-      </div>
+      <BookingStepper step={step} />
 
-      <div className={styles.submissionError}>
-        {/* Stays mounted regardless of submission state (same reasoning as
-            BookingFieldError's own doc comment for the banner above): a
-            screen reader announces mutations to a live region that already
-            existed, not one inserted into the DOM already containing text.
-            Try again drives submission through 'submitting', which used to
-            unmount this whole block and remount it fresh on the next
-            failure — the live region was reborn with its content already
-            in place, so nothing was ever announced regardless of the text.
-            aria-live also only re-announces when the text actually changes,
-            so a second failure with the same code needs its text to differ
-            too — a word joiner toggled by attempt parity is silent and
-            invisible, forcing that without touching the visible message or
-            the top rejection banner (reserved for goNext rejections). */}
-        <BookingFieldError
-          id={submissionErrorId}
-          message={
-            submission.type === 'error'
-              ? submissionErrorText(submission.code) + (submissionAttempt % 2 === 1 ? '⁠' : '')
-              : undefined
-          }
-        />
-        {submission.type === 'error' && submission.code === 'network' && (
-          <button type="button" className={styles.secondaryButton} onClick={handleRetry}>
-            Try again
-          </button>
-        )}
+      <div className={styles.layout}>
+        <form className={styles.formCard} noValidate onSubmit={handleSubmit} aria-busy={isSubmitting || undefined}>
+          <BookingFieldError id={formMessageId} message={rejectionText || undefined} />
+
+          {/* Keyed by step so each step enters with a short transition; it
+              does not replay while typing inside a step. */}
+          <div key={step} className={styles.stepPanel}>
+            {step === 1 && (
+              <BookingStepDates
+                draft={draft}
+                errors={errors}
+                constraints={constraints}
+                setField={setField}
+                setDateRange={setDateRange}
+                blurField={blurField}
+                headingRef={headingRef}
+                dateFieldRef={dateFieldRef}
+                guestsFieldRef={guestsFieldRef}
+              />
+            )}
+            {step === 2 && (
+              <BookingStepContacts
+                draft={draft}
+                errors={errors}
+                constraints={constraints}
+                setField={setField}
+                blurField={blurField}
+                headingRef={headingRef}
+                nameFieldRef={nameFieldRef}
+                emailFieldRef={emailFieldRef}
+                phoneFieldRef={phoneFieldRef}
+              />
+            )}
+            {step === 3 && (
+              <BookingStepReview
+                venue={venue}
+                draft={draft}
+                errors={errors}
+                constraints={constraints}
+                setField={setField}
+                blurField={blurField}
+                onEdit={handleEdit}
+                headingRef={headingRef}
+                agreementFieldRef={agreementFieldRef}
+              />
+            )}
+          </div>
+
+          <div className={styles.submissionError}>
+            {/* Stays mounted across submission states so the live region
+                exists before its text changes; the word joiner toggled by
+                attempt parity makes a repeated identical failure re-announce
+                without changing what's visible. */}
+            <BookingFieldError
+              id={submissionErrorId}
+              message={
+                submission.type === 'error'
+                  ? submissionErrorText(submission.code) + (submissionAttempt % 2 === 1 ? '⁠' : '')
+                  : undefined
+              }
+            />
+            {submission.type === 'error' && submission.code === 'unavailable' && (
+              <button type="button" className={buttonClass({ variant: 'secondary', size: 'small' })} onClick={() => handleEdit(1)}>
+                Edit dates
+              </button>
+            )}
+          </div>
+
+          <div className={styles.actions}>
+            {step > 1 && (
+              <button
+                type="button"
+                className={buttonClass({ variant: 'secondary', size: 'large' })}
+                onClick={handleBack}
+                disabled={isSubmitting}
+              >
+                Back
+              </button>
+            )}
+            <button
+              type="submit"
+              className={buttonClass({ size: 'large', className: styles.primaryAction })}
+              aria-disabled={isSubmitting || undefined}
+            >
+              {step < 3 ? 'Continue' : isSubmitting ? 'Confirming…' : submission.type === 'error' && submission.code === 'network' ? 'Try again' : 'Confirm demo booking'}
+              {isSubmitting && <span className={styles.spinner} aria-hidden="true" />}
+            </button>
+          </div>
+        </form>
+
+        <BookingSummary venue={venue} draft={draft} />
       </div>
     </div>
   )
@@ -259,7 +276,7 @@ export function BookingPage() {
   const { slug } = useParams<{ slug: string }>()
   const venue = useVenue(slug ?? '')
 
-  useDocumentTitle(venue.status === 'success' ? `Book ${venue.data.name}` : null)
+  useDocumentTitle(venue.status === 'success' ? `Book ${venue.data.name} · Stayline` : null)
 
   if (venue.status === 'loading') {
     return <BookingPageSkeleton />

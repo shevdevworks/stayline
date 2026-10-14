@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchFilterFacets, isAbortError } from '@/api'
+import { fetchFilterFacets, getFilterFacets, isAbortError } from '@/api'
+import { isInitialRender } from '@/lib/initialRender'
 import type { FilterFacets } from '@/types'
 
 export type FilterFacetsStatus = 'loading' | 'success' | 'error'
@@ -19,16 +20,23 @@ interface FacetsState {
 const INITIAL_STATE: FacetsState = { facets: null, error: false, settledTick: null }
 
 export function useFilterFacets(): UseFilterFacetsResult {
-  const [state, setState] = useState<FacetsState>(INITIAL_STATE)
+  // Same synchronous first render as useVenues — see lib/initialRender.ts.
+  const [state, setState] = useState<FacetsState>(() =>
+    isInitialRender() ? { facets: getFilterFacets(), error: false, settledTick: 0 } : INITIAL_STATE,
+  )
   const [refetchTick, setRefetchTick] = useState(0)
 
   const requestIdRef = useRef(0)
+  const seededTickRef = useRef(state.settledTick)
 
   const refetch = useCallback(() => setRefetchTick((tick) => tick + 1), [])
 
   const isFetching = state.settledTick !== refetchTick
 
   useEffect(() => {
+    if (seededTickRef.current === refetchTick) return
+    seededTickRef.current = null
+
     const requestId = ++requestIdRef.current
     const controller = new AbortController()
 
