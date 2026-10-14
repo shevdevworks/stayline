@@ -54,6 +54,8 @@ function buildPage(route) {
     html = setMeta(html, 'property', 'og:image:width', '1200')
     html = setMeta(html, 'property', 'og:image:height', '800')
     html = setMeta(html, 'property', 'og:image:alt', route.title)
+    html = setMeta(html, 'name', 'twitter:image', `${SITE_ORIGIN}${route.image}`)
+    html = setMeta(html, 'name', 'twitter:image:alt', route.title)
   }
   html = html.replace('</head>', `    <link rel="canonical" href="${url}" />\n  </head>`)
   return html.replace(
